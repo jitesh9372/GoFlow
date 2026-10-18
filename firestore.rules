@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for role-based authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'admin' || 
+         request.auth.token.admin == true || 
+         request.auth.token.email == 'admin@123' || 
+         request.auth.token.email == 'admin@gmail.com');
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User Profiles
+    match /profiles/{userId} {
+      allow read: if isAuthenticated();
+      // Only users can edit their own profile, or admins
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Transport Lines, Stations, Stops, Routes
+    match /lines/{lineId} {
+      allow read: if true; // Public read for navigation
+      allow write: if isAdmin();
+    }
+
+    match /stations/{stationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /transportModes/{modeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /routes/{routeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Crowd Readings (Sensors, verified stats)
+    match /crowdReadings/{readingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Passenger Crowd Reports (Rush Reports)
+    match /crowdReports/{reportId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
+    // Real-Time Activity & Audit Feed
+    match /activities/{activityId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Notifications & Congestion Alerts
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Saved Routes subcollection or root collection
+    match /savedRoutes/{savedId} {
+      allow read, write: if true;
+    }
+  }
+}

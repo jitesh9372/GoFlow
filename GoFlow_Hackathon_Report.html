@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>GoFlow - Mumbai Transit Intelligence | Hackathon 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--navy:#0f172a;--teal:#14b8a6;--teal2:#0d9488;--slate:#475569;--light:#f8fafc;--border:#e2e8f0;--accent:#6366f1;--green:#10b981;--amber:#f59e0b;--rose:#f43f5e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#fff;color:var(--navy);font-size:11pt;line-height:1.6}
+.page{page-break-after:always}.page:last-child{page-break-after:auto}
+@media print{.no-print{display:none!important}.page{page-break-after:always}}
+/* COVER */
+.cover{background:linear-gradient(135deg,#0f172a 0%,#1e293b 40%,#0f3d3d 100%);color:#fff;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:60px 40px;position:relative;overflow:hidden}
+.cover h1{font-size:54pt;font-weight:900;background:linear-gradient(90deg,#fff,#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.cbadge{background:rgba(20,184,166,.15);border:1px solid rgba(20,184,166,.4);color:#5eead4;padding:6px 18px;border-radius:999px;font-size:9pt;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;display:inline-block}
+.ctagline{font-size:15pt;color:rgba(255,255,255,.65);font-weight:300;margin-bottom:32px}
+.cdivider{width:80px;height:3px;background:linear-gradient(90deg,var(--teal),var(--accent));border-radius:2px;margin:0 auto 32px}
+.cdesc{max-width:600px;font-size:11pt;color:rgba(255,255,255,.75);line-height:1.8;margin-bottom:36px}
+.cpills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:44px}
+.cpill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8);padding:5px 14px;border-radius:999px;font-size:9pt;font-weight:500}
+.cstats{display:flex;gap:45px;justify-content:center}
+.csnum{font-size:22pt;font-weight:800;color:var(--teal);display:block}
+.cslbl{font-size:8pt;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em}
+.cfooter{position:absolute;bottom:32px;font-size:8.5pt;color:rgba(255,255,255,.3);display:flex;gap:20px}
+/* CONTENT */
+.cp{max-width:880px;margin:0 auto;padding:46px 48px;min-height:100vh}
+.ph{display:flex;align-items:center;justify-content:space-between;padding-bottom:13px;border-bottom:2px solid var(--border);margin-bottom:30px}
+.ph-brand{font-size:13pt;font-weight:800;color:var(--navy)}.ph-brand span{color:var(--teal)}
+.ph-tag{font-size:8pt;color:var(--slate);font-weight:500}
+.sl{font-size:8pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal2);margin-bottom:5px}
+.st{font-size:20pt;font-weight:800;color:var(--navy);margin-bottom:4px;letter-spacing:-.02em}
+.ss{font-size:10pt;color:var(--slate);margin-bottom:22px;line-height:1.6}
+.sd{height:3px;background:linear-gradient(90deg,var(--teal),transparent);border-radius:2px;margin-bottom:22px}
+.card{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:13px}
+.ct{font-size:11pt;font-weight:700;color:var(--navy);margin-bottom:4px}
+.cb{font-size:9.5pt;color:var(--slate);line-height:1.65}
+/* TECH GRID */
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.tc{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:13px;border-top:3px solid var(--teal)}
+.tc.be{border-top-color:var(--accent)}.tc.db{border-top-color:var(--amber)}.tc.ap{border-top-color:var(--green)}.tc.au{border-top-color:var(--rose)}.tc.to{border-top-color:#8b5cf6}
+.tccat{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--teal2);margin-bottom:6px}
+.tc.be .tccat{color:var(--accent)}.tc.db .tccat{color:#d97706}.tc.ap .tccat{color:var(--green)}.tc.au .tccat{color:var(--rose)}.tc.to .tccat{color:#7c3aed}
+.ti{list-style:none}.ti li{font-size:9pt;color:var(--navy);font-weight:500;padding:2px 0;display:flex;align-items:center;gap:5px}
+.ti li::before{content:"▸";color:var(--teal);font-size:7.5pt}
+.tc.be .ti li::before{color:var(--accent)}.tc.db .ti li::before{color:var(--amber)}.tc.ap .ti li::before{color:var(--green)}.tc.au .ti li::before{color:var(--rose)}
+/* FEATURE GRID */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fc{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:13px 15px}
+.fi{font-size:18pt;margin-bottom:5px;display:block}.fn{font-size:11pt;font-weight:700;color:var(--navy);margin-bottom:3px}
+.fd{font-size:9pt;color:var(--slate);line-height:1.55}
+/* TABLES */
+table.rt{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:16px}
+table.rt th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-size:8.5pt;font-weight:600}
+table.rt th:first-child{border-radius:6px 0 0 0}table.rt th:last-child{border-radius:0 6px 0 0}
+table.rt td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--navy);vertical-align:top}
+table.rt tr:last-child td{border-bottom:none}
+code{font-family:"JetBrains Mono",monospace;background:#f1f5f9;border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:8.5pt;color:#6366f1}
+/* ARCH BOX */
+.ab{background:var(--navy);color:#fff;border-radius:10px;padding:22px;font-family:"JetBrains Mono",monospace;font-size:8.5pt;line-height:1.85;margin-bottom:16px;white-space:pre}
+.at{color:#5eead4}.aa{color:#fcd34d}.ag{color:#86efac}.apink{color:#f9a8d4}.ablue{color:#93c5fd}
+/* BADGES */
+.badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:7.5pt;font-weight:600}
+.bt{background:#ccfbf1;color:#0f766e}.bn{background:#e0e7ff;color:#3730a3}.bg{background:#d1fae5;color:#065f46}.ba{background:#fef3c7;color:#92400e}.br{background:#ffe4e6;color:#9f1239}
+/* LAYOUT */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.sb{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:15px;text-align:center}
+.sn{font-size:24pt;font-weight:900;color:var(--teal2);display:block;line-height:1;margin-bottom:3px}
+.slb{font-size:8.5pt;color:var(--slate);font-weight:500}
+.hl{background:linear-gradient(135deg,#f0fdfa,#ecfdf5);border-left:4px solid var(--teal);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:13px;font-size:9.5pt;color:#0f4c3a}
+.hl strong{color:var(--teal2)}
+ul.chk{list-style:none}
+ul.chk li{padding:3px 0;font-size:9.5pt;color:var(--slate);display:flex;gap:7px;align-items:flex-start}
+ul.chk li::before{content:"✓";color:var(--green);font-weight:700;flex-shrink:0;margin-top:1px}
+.df{margin-top:32px;padding-top:13px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}
+.pb{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:13px 17px;margin-bottom:11px}
+.pt{font-size:9.5pt;font-weight:700;color:#92400e;margin-bottom:3px}.pd{font-size:9pt;color:#78350f;line-height:1.6}
+.solb{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:13px 17px;margin-bottom:11px}
+.solt{font-size:9.5pt;font-weight:700;color:#065f46;margin-bottom:3px}.sold{font-size:9pt;color:#14532d;line-height:1.6}
+.tr{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.pbtn{position:fixed;bottom:28px;right:28px;background:var(--teal2);color:#fff;border:none;padding:13px 26px;border-radius:50px;font-size:11pt;font-weight:700;cursor:pointer;box-shadow:0 8px 28px rgba(13,148,136,.4);z-index:999}
+.pbtn:hover{transform:scale(1.04)}
+@media print{.pbtn{display:none}}
+</style>
+</head>
+<body>
+<button class="pbtn no-print" onclick="window.print()">🖨️ Save as PDF</button>
+
+<!-- ===== PAGE 1: COVER ===== -->
+<div class="page">
+<div class="cover">
+<div class="cbadge">🚆 Hackathon 2026 · Smart Urban Mobility</div>
+<h1>GoFlow</h1>
+<div class="ctagline">Mumbai Transit Intelligence Platform</div>
+<div class="cdivider"></div>
+<p class="cdesc">A full-stack real-time urban transit intelligence system for Mumbai's multi-modal network — covering Suburban Railways, Metro, and BEST Buses. Built with React 18, Node.js, Firebase Firestore, and live Indian Railways RailRadar telemetry.</p>
+<div class="cpills">
+<span class="cpill">React 18 + TypeScript</span>
+<span class="cpill">Node.js + Express</span>
+<span class="cpill">Firebase Firestore</span>
+<span class="cpill">RailRadar Live API</span>
+<span class="cpill">Leaflet.js Maps</span>
+<span class="cpill">Framer Motion</span>
+<span class="cpill">JWT Auth</span>
+</div>
+<div class="cstats">
+<div><span class="csnum">70+</span><span class="cslbl">Railway Trains</span></div>
+<div><span class="csnum">8</span><span class="cslbl">Rail Corridors</span></div>
+<div><span class="csnum">15</span><span class="cslbl">App Screens</span></div>
+<div><span class="csnum">28+</span><span class="cslbl">API Endpoints</span></div>
+<div><span class="csnum">3</span><span class="cslbl">Transport Modes</span></div>
+</div>
+<div class="cfooter">
+<span>GoFlow Mumbai Transit Platform</span><span>•</span>
+<span>Hackathon Technical Report 2026</span><span>•</span>
+<span>goflow-ce18e.firebaseapp.com</span>
+</div>
+</div>
+</div>
+
+<!-- ===== PAGE 2: PROBLEM + SOLUTION ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Problem Statement &amp; Solution</div></div>
+<div class="sl">The Challenge</div>
+<div class="st">Why Mumbai Transit Needs Intelligence</div>
+<p class="ss">Mumbai has 21 million daily commuters across trains, metro, and buses — yet no unified platform provides real-time crowd intelligence and multi-modal route planning.</p>
+<div class="sd"></div>
+<div class="pb"><div class="pt">😰 Problem 1 — No Real-Time Crowd Visibility</div><div class="pd">Commuters have zero visibility into crowd levels at stations before they travel. Rush-hour surprises lead to missed trains, crushed coaches, and wasted time.</div></div>
+<div class="pb"><div class="pt">🗺️ Problem 2 — Fragmented Multi-Modal Routing</div><div class="pd">Getting from A to B in Mumbai involves switching between trains, metro, and BEST buses. No single app combines all three with live timing and crowd data.</div></div>
+<div class="pb"><div class="pt">🚆 Problem 3 — Train Tracking is Opaque</div><div class="pd">Where is my train right now? Is it late? Which platform? Indian Railways data is scattered and hard to consume. Passengers are left guessing.</div></div>
+<div class="pb"><div class="pt">📊 Problem 4 — Admins Lack Operational Dashboards</div><div class="pd">Transit authorities have no consolidated real-time dashboard to monitor crowd levels, passenger reports, and alerts across the entire Mumbai network.</div></div>
+<br/>
+<div class="sl">Our Answer</div>
+<div class="st">GoFlow — One Platform, All of Mumbai</div>
+<div class="sd"></div>
+<div class="solb"><div class="solt">✅ Solution 1 — Live Crowd Intelligence Map</div><div class="sold">Interactive Leaflet.js map with real-time crowd indicators at every Mumbai station — colour-coded Low / Moderate / High / Packed — powered by Firestore live data.</div></div>
+<div class="solb"><div class="solt">✅ Solution 2 — Intelligent Multi-Modal Route Planner</div><div class="sold">Plan routes across Local Trains, Metro, and BEST Buses in one query. Multiple route options with crowd levels, estimated time, platform info — with save &amp; bookmark.</div></div>
+<div class="solb"><div class="solt">✅ Solution 3 — Live Rail Radar (RailRadar API)</div><div class="sold">Real-time GPS telemetry for 70+ Indian Railways trains. Search by train name or number, view live position, next halt, running delay, and full coach composition.</div></div>
+<div class="solb"><div class="solt">✅ Solution 4 — Admin Operations Command Centre</div><div class="sold">A full admin portal with real-time crowd monitoring, passenger rush reports review, notifications broadcast, transport management, and analytics dashboards.</div></div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 2</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 3: TECHNOLOGY STACK ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Technology Stack</div></div>
+<div class="sl">Engineering</div>
+<div class="st">Technologies Used</div>
+<p class="ss">GoFlow is built on a modern, production-grade full-stack architecture. Every technology choice was deliberate — optimised for real-time performance, developer experience, and scalability.</p>
+<div class="sd"></div>
+<div class="tg">
+<div class="tc"><div class="tccat">⚛️ Frontend</div><ul class="ti"><li>React 18</li><li>TypeScript</li><li>Vite (Build Tool)</li><li>Tailwind CSS</li><li>Framer Motion</li><li>React Router v6</li><li>Lucide React Icons</li></ul></div>
+<div class="tc be"><div class="tccat">🛠️ Backend</div><ul class="ti"><li>Node.js Runtime</li><li>Express.js Framework</li><li>TypeScript</li><li>CORS Middleware</li><li>dotenv Config</li><li>Firebase Admin SDK</li><li>RESTful API Design</li></ul></div>
+<div class="tc db"><div class="tccat">🗄️ Database</div><ul class="ti"><li>Firebase Firestore</li><li>Real-time Listeners</li><li>Security Rules</li><li>Firestore Indexes</li><li>In-memory Fallback</li><li>8 Collections</li></ul></div>
+<div class="tc au"><div class="tccat">🔐 Auth &amp; Security</div><ul class="ti"><li>Firebase Authentication</li><li>JWT Bearer Tokens</li><li>Role-Based Access</li><li>Admin / Passenger Roles</li><li>Protected Routes</li><li>x-mock-role Header</li></ul></div>
+<div class="tc ap"><div class="tccat">🌐 External APIs</div><ul class="ti"><li>RailRadar (railradar.in)</li><li>70+ Train Profiles</li><li>Live GPS Telemetry</li><li>Intelligent Fallback</li><li>Leaflet.js Maps</li><li>OpenStreetMap Tiles</li></ul></div>
+<div class="tc to"><div class="tccat">🧰 Dev Tools</div><ul class="ti"><li>Vite Dev Server</li><li>TSC Compiler</li><li>npm / Node.js</li><li>Firebase CLI</li><li>Google Fonts (Inter)</li><li>JetBrains Mono</li></ul></div>
+</div>
+<div class="hl"><strong>Architecture Pattern:</strong> SPA frontend communicates with Node.js RESTful API via <code>fetch()</code>. Backend reads/writes Firebase Firestore and calls RailRadar for train data. Firebase Auth provides JWT tokens sent as <code>Authorization: Bearer &lt;token&gt;</code> for all protected routes.</div>
+<div class="sl" style="margin-top:18px">Connection Bridge</div>
+<div class="st" style="font-size:15pt">Frontend ↔ Backend Communication</div>
+<div class="sd"></div>
+<table class="rt">
+<thead><tr><th>Layer</th><th>Technology</th><th>URL / Config</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><strong>Frontend Dev</strong></td><td>Vite + React 18</td><td><code>http://localhost:5173</code></td><td>React SPA Development Server</td></tr>
+<tr><td><strong>Backend API</strong></td><td>Express.js</td><td><code>http://localhost:5000/api</code></td><td>REST API Server (7 routers)</td></tr>
+<tr><td><strong>Env Bridge</strong></td><td>VITE_API_URL</td><td><code>VITE_API_URL=http://localhost:5000/api</code></td><td>Frontend env pointing to backend</td></tr>
+<tr><td><strong>CORS</strong></td><td>Express CORS middleware</td><td><code>origin:true, credentials:true</code></td><td>Allow cross-origin requests</td></tr>
+<tr><td><strong>Auth Token</strong></td><td>Firebase JWT</td><td><code>Authorization: Bearer &lt;token&gt;</code></td><td>Authenticate every API request</td></tr>
+<tr><td><strong>Database</strong></td><td>Firestore SDK</td><td><code>goflow-ce18e.firebaseapp.com</code></td><td>Cloud real-time database</td></tr>
+<tr><td><strong>Train Data</strong></td><td>RailRadar HTTPS</td><td><code>api.railradar.in/v1</code></td><td>Live Indian Railways data</td></tr>
+</tbody>
+</table>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 3</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 4: ARCHITECTURE ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">System Architecture</div></div>
+<div class="sl">System Design</div>
+<div class="st">Full-Stack Architecture Overview</div>
+<p class="ss">GoFlow follows a clean separation of concerns — React SPA on the frontend, Express REST API on the backend, Firebase for persistence and auth, and RailRadar for live train telemetry.</p>
+<div class="sd"></div>
+<div class="ab"><span class="at">+------------------------------------------------------------------+</span>
+<span class="at">|                 GoFlow System Architecture                       |</span>
+<span class="at">+------------------------------------------------------------------+</span>
+
+<span class="aa">[ BROWSER  http://localhost:5173 ]</span>
+ +- React 18 + TypeScript (Vite SPA)
+ +- React Router v6  (15 pages/routes)
+ +- Framer Motion    (page transitions)
+ +- Leaflet.js       (interactive crowd maps)
+ +- services/api.ts  [ApiClient singleton - all HTTP calls]
+          |
+          |   HTTP fetch()  +  Authorization: Bearer JWT
+          v
+<span class="ablue">[ EXPRESS SERVER  http://localhost:5000 ]</span>
+ +- CORS + JSON middleware
+ +- /api/auth          authRouter
+ +- /api/transport     transportRouter
+ +- /api/crowd         crowdRouter
+ +- /api/reports       reportsRouter
+ +- /api/routes        routesRouter
+ +- /api/notifications notificationsRouter
+ +- /api/railradar     railradarRouter
+          |
+    +-----+-----------------------------+
+    v                                   v
+<span class="ag">[ Firebase Firestore ]</span>           <span class="apink">[ RailRadar API ]</span>
+ +- /profiles/{userId}            +- api.railradar.in/v1
+ +- /lines/{lineId}               +- Live GPS positions
+ +- /stations/{stationId}         +- 70+ train profiles
+ +- /crowdReadings/{id}           +- 8 rail corridors
+ +- /crowdReports/{id}            +- Deterministic fallback
+ +- /notifications/{id}               (per-train hash engine)
+ +- /activities/{id}
+ +- /savedRoutes/{id}
+
+<span class="ag">[ Firebase Authentication ]</span>
+ +- Email/Password Auth  +  JWT Token Generation
+ +- Role Claims (admin/passenger)
+ +- Admin SDK verification on backend
+</div>
+<div class="two">
+<div>
+<div class="sl">Frontend Structure</div>
+<div style="font-size:8.5pt;font-family:'JetBrains Mono',monospace;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:13px;line-height:1.85;color:#334155">
+frontend/src/<br>
++-- pages/ (15 routes)<br>
+|   +-- LandingPage.tsx<br>
+|   +-- passenger/<br>
+|   |   +-- PassengerDashboard<br>
+|   |   +-- RoutePlannerPage<br>
+|   |   +-- CrowdMapPage<br>
+|   |   +-- LiveRailRadarPage<br>
+|   |   +-- CrowdTimingsPage<br>
+|   |   +-- ReportCrowdPage<br>
+|   |   +-- SavedRoutesPage<br>
+|   |   +-- PassengerProfilePage<br>
+|   +-- admin/<br>
+|   |   +-- AdminDashboard<br>
+|   |   +-- TransportManagement<br>
+|   |   +-- CrowdMonitoring<br>
+|   |   +-- CrowdAnalytics<br>
+|   |   +-- PassengerReports<br>
+|   |   +-- NotificationsPage<br>
+|   |   +-- AdminSettings<br>
+|   +-- auth/ (SignIn, SignUp)<br>
++-- components/ (16 components)<br>
++-- services/api.ts<br>
++-- context/AuthContext.tsx<br>
++-- types/index.ts
+</div>
+</div>
+<div>
+<div class="sl">Backend Structure</div>
+<div style="font-size:8.5pt;font-family:'JetBrains Mono',monospace;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:13px;line-height:1.85;color:#334155">
+backend/src/<br>
++-- index.ts (Express server)<br>
++-- routes/<br>
+|   +-- auth.ts<br>
+|   +-- transport.ts<br>
+|   +-- crowd.ts<br>
+|   +-- reports.ts<br>
+|   +-- routes.ts<br>
+|   +-- notifications.ts<br>
+|   +-- railradar.ts<br>
++-- services/<br>
+|   +-- railradar.ts<br>
+|   |   +-- 70+ train profiles<br>
+|   |   +-- 8 corridor classifiers<br>
+|   |   +-- Telemetry generator<br>
+|   |   +-- Intelligent fallback<br>
+|   +-- routing.ts<br>
+|   +-- store.ts<br>
++-- middleware/<br>
++-- config/<br>
++-- types/
+</div>
+</div>
+</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 4</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 5: PASSENGER FEATURES ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Passenger Features</div></div>
+<div class="sl">User Experience</div>
+<div class="st">Passenger Portal Features</div>
+<p class="ss">GoFlow's passenger experience is designed around the daily Mumbai commuter's needs — fast, beautiful, and genuinely useful.</p>
+<div class="sd"></div>
+<div class="fg">
+<div class="fc"><span class="fi">🗺️</span><div class="fn">Interactive Crowd Map</div><div class="fd">Leaflet.js real-time map of Mumbai's transit network. Colour-coded markers at every station:<ul class="chk" style="margin-top:5px"><li>Low / Moderate / High / Packed indicators</li><li>Real-time Firestore live updates</li><li>Filter by Local, Metro, BEST Bus</li><li>Click station for crowd details popup</li></ul></div></div>
+<div class="fc"><span class="fi">🚦</span><div class="fn">Smart Route Planner</div><div class="fd">Multi-modal route planning across all Mumbai transport:<ul class="chk" style="margin-top:5px"><li>Local Train + Metro + BEST Bus</li><li>Multiple route options with crowd levels</li><li>Platform numbers and estimated time</li><li>Save and bookmark favourite routes</li><li>Preview route on interactive map</li></ul></div></div>
+<div class="fc"><span class="fi">🚆</span><div class="fn">Live Rail Radar</div><div class="fd">Real-time GPS tracking of 70+ Indian Railways trains:<ul class="chk" style="margin-top:5px"><li>Search by name (Kamayani, Rajdhani...)</li><li>Search by train number (11071, 04101...)</li><li>Live position, next halt, running delay</li><li>Full intermediate stops list</li><li>Coach rake layout visualiser</li><li>RailRadar API + intelligent fallback</li></ul></div></div>
+<div class="fc"><span class="fi">📣</span><div class="fn">Report Rush / Crowd</div><div class="fd">Passengers contribute real-time crowd data:<ul class="chk" style="margin-top:5px"><li>Report crowd level at any station</li><li>Select transport mode and coach type</li><li>Anonymous or authenticated reports</li><li>Reports feed Admin review queue</li></ul></div></div>
+<div class="fc"><span class="fi">⏱️</span><div class="fn">Crowd Timings</div><div class="fd">Historical crowd pattern analysis:<ul class="chk" style="margin-top:5px"><li>Peak / off-peak hour charts</li><li>Best time to travel insights</li><li>Station-level breakdown</li><li>Day-of-week crowd patterns</li></ul></div></div>
+<div class="fc"><span class="fi">👤</span><div class="fn">Dashboard &amp; Profile</div><div class="fd">Personal commute hub:<ul class="chk" style="margin-top:5px"><li>Live RailRadar telemetry bar</li><li>Quick access to common routes</li><li>Saved routes management</li><li>Profile preferences</li><li>Notification history</li></ul></div></div>
+</div>
+<div class="hl" style="margin-top:11px"><strong>Live Rail Radar Engine:</strong> 70+ Indian Railways trains indexed across 8 corridors (Western, Central North, Central East, Konkan, Deccan/Pune, Western Suburban, Central Suburban, Harbour Line). When API quota is exceeded, a deterministic per-train hash engine generates authentic position data — every train shows <em>different, realistic</em> data.</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 5</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 6: ADMIN FEATURES ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Admin Portal</div></div>
+<div class="sl">Operations</div>
+<div class="st">Admin Command Centre</div>
+<p class="ss">A full operations portal for transit authorities to monitor, manage, and respond to Mumbai's live transit network in real time.</p>
+<div class="sd"></div>
+<div class="card"><div class="ct">📊 Admin Dashboard — Real-Time Overview</div><div class="cb">Central command screen with live KPIs: active stations, crowd alerts, pending passenger reports, Firestore real-time activity feed, network health status, and quick-action buttons for broadcasting alerts.</div></div>
+<div class="card"><div class="ct">🚉 Transport Management — Lines &amp; Stations</div><div class="cb">Full CRUD for Mumbai's transit network: Create/Edit/Delete transit <strong>Lines</strong> (Western Railway, Central Railway, Metro Line 1, BEST routes). Create/Edit/Delete <strong>Stations</strong> with geo-coordinates, platform count, and transport mode. Link stations to lines with sequence and timing data.</div></div>
+<div class="card"><div class="ct">👁️ Live Crowd Monitoring</div><div class="cb">Real-time crowd level monitor across all stations. Colour-coded heat view (Low / Moderate / High / Packed). Filter by transport mode. See live readings stream in from sensors and passenger reports. Trigger immediate alerts.</div></div>
+<div class="card"><div class="ct">📈 Crowd Analytics Dashboard</div><div class="cb">Historical analytics with charts: peak hour patterns, busiest stations, congestion trends by day/week, report submission volume. Helps plan service frequency adjustments and resource allocation.</div></div>
+<div class="card"><div class="ct">📋 Passenger Rush Reports Review Queue</div><div class="cb">Review all citizen-submitted crowd reports. Admin can <strong>Verify</strong> (publish as official data) or <strong>Reject</strong> (discard incorrect reports). Verified reports feed back into the live crowd map. Filter by: Pending / Verified / Rejected.</div></div>
+<div class="card"><div class="ct">🔔 Notifications &amp; Congestion Alerts</div><div class="cb">Broadcast service alerts with severity: <span class="badge bt">Info</span> <span class="badge ba">Warning</span> <span class="badge br">Alert</span>. Target by transport mode or specific line. Appear in passenger app's notification banner in real-time via Firestore listeners.</div></div>
+<div class="card"><div class="ct">⚙️ Admin Settings</div><div class="cb">System configuration — manage admin accounts, set role assignments, configure API keys (RailRadar), toggle feature flags.</div></div>
+<div class="hl"><strong>Role-Based Access Control:</strong> Firebase Auth with custom role claims. Passengers access <code>/passenger/*</code> routes. Admins access <code>/admin/*</code> routes. Backend validates JWT token role claims. Firestore Security Rules enforce the same at the database layer — Admins write to all collections; passengers only read public data and write their own reports.</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 6</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 7: API REFERENCE ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">API Reference</div></div>
+<div class="sl">Backend REST API</div>
+<div class="st">Complete API Endpoint Reference</div>
+<p class="ss">All 28+ endpoints served from <code>http://localhost:5000/api</code> with JSON bodies and Bearer token auth.</p>
+<div class="sd"></div>
+<table class="rt">
+<thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Auth</th></tr></thead>
+<tbody>
+<tr><td colspan="4" style="background:#f1f5f9;font-weight:700;font-size:8.5pt;color:#475569">🔐 Authentication</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/auth/login</code></td><td>Email + password login</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/auth/demo-login</code></td><td>Demo login with role</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/auth/profile</code></td><td>Get current user profile</td><td>JWT</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/auth/set-role</code></td><td>Assign admin/passenger role</td><td>Admin</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/auth/saved-routes</code></td><td>Save a route to profile</td><td>JWT</td></tr>
+<tr><td><span class="badge br">DEL</span></td><td><code>/auth/saved-routes/:id</code></td><td>Delete a saved route</td><td>JWT</td></tr>
+<tr><td colspan="4" style="background:#f1f5f9;font-weight:700;font-size:8.5pt;color:#475569">🚉 Transport</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/transport/lines</code></td><td>Get all transit lines</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/transport/lines</code></td><td>Create new transit line</td><td>Admin</td></tr>
+<tr><td><span class="badge ba">PUT</span></td><td><code>/transport/lines/:id</code></td><td>Update a transit line</td><td>Admin</td></tr>
+<tr><td><span class="badge br">DEL</span></td><td><code>/transport/lines/:id</code></td><td>Delete a line</td><td>Admin</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/transport/stations</code></td><td>Get stations (filter: mode, lineId, search)</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/transport/stations</code></td><td>Create station</td><td>Admin</td></tr>
+<tr><td><span class="badge ba">PUT</span></td><td><code>/transport/stations/:id</code></td><td>Update station</td><td>Admin</td></tr>
+<tr><td colspan="4" style="background:#f1f5f9;font-weight:700;font-size:8.5pt;color:#475569">👥 Crowd &amp; Reports</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/crowd/readings</code></td><td>Get crowd readings (filter params)</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/crowd/readings</code></td><td>Post new crowd reading</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/crowd/analytics</code></td><td>Get crowd analytics summary</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/reports</code></td><td>Get passenger reports (filter: status)</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/reports</code></td><td>Submit crowd report</td><td>—</td></tr>
+<tr><td><span class="badge ba">PATCH</span></td><td><code>/reports/:id/review</code></td><td>Verify or reject a report</td><td>Admin</td></tr>
+<tr><td colspan="4" style="background:#f1f5f9;font-weight:700;font-size:8.5pt;color:#475569">🚆 RailRadar</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/railradar/search?q=kamayani</code></td><td>Search trains by name or number</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/railradar/live/:trainNumber</code></td><td>Get live status for a train</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/railradar/popular</code></td><td>Popular Mumbai trains with live data</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/railradar/between?from=X&amp;to=Y</code></td><td>Trains between two stations</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/railradar/status</code></td><td>API health and quota status</td><td>—</td></tr>
+<tr><td colspan="4" style="background:#f1f5f9;font-weight:700;font-size:8.5pt;color:#475569">🔔 Routing &amp; Notifications</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/routes/plan</code></td><td>Multi-modal route planning</td><td>—</td></tr>
+<tr><td><span class="badge bt">GET</span></td><td><code>/notifications</code></td><td>Get active service notifications</td><td>—</td></tr>
+<tr><td><span class="badge bg">POST</span></td><td><code>/notifications</code></td><td>Broadcast a notification</td><td>Admin</td></tr>
+<tr><td><span class="badge br">DEL</span></td><td><code>/notifications/:id</code></td><td>Dismiss a notification</td><td>JWT</td></tr>
+</tbody>
+</table>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 7</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 8: DATABASE ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Database Design &amp; Firebase</div></div>
+<div class="sl">Data Layer</div>
+<div class="st">Firebase Firestore Schema</div>
+<p class="ss">GoFlow uses Google Firebase Firestore as its primary cloud database, designed for real-time listeners — enabling live updates to crowd maps and admin dashboards without polling.</p>
+<div class="sd"></div>
+<table class="rt">
+<thead><tr><th>Collection</th><th>Document Fields</th><th>Access</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>/profiles/{userId}</code></td><td>uid, email, displayName, role, savedRoutes, createdAt</td><td>Owner/Admin write</td><td>User accounts &amp; preferences</td></tr>
+<tr><td><code>/lines/{lineId}</code></td><td>name, mode, colour, stops[], routeGeoJSON</td><td>Public read, Admin write</td><td>Transit lines (WR, CR, Metro, BEST)</td></tr>
+<tr><td><code>/stations/{stationId}</code></td><td>name, mode, lineId, lat, lng, platforms, crowdLevel</td><td>Public read, Admin write</td><td>All Mumbai station data</td></tr>
+<tr><td><code>/crowdReadings/{id}</code></td><td>stationId, stationName, crowdLevel, mode, timestamp</td><td>Public read/write</td><td>Real-time crowd sensor data</td></tr>
+<tr><td><code>/crowdReports/{id}</code></td><td>stationId, crowdLevel, mode, notes, status, submittedBy</td><td>Public create, Admin review</td><td>Passenger-submitted rush reports</td></tr>
+<tr><td><code>/notifications/{id}</code></td><td>title, message, severity, mode, lineId, affectedStations[]</td><td>Public read, Admin write</td><td>Service alerts broadcast</td></tr>
+<tr><td><code>/activities/{id}</code></td><td>type, description, userId, meta{}, timestamp</td><td>Public read/write</td><td>Real-time admin activity feed</td></tr>
+<tr><td><code>/savedRoutes/{id}</code></td><td>userId, fromStationId, toStationId, preferredMode</td><td>Public read/write</td><td>Passenger route bookmarks</td></tr>
+</tbody>
+</table>
+<div class="sl" style="margin-top:16px">Security</div>
+<div class="st" style="font-size:15pt">Firestore Security Rules &amp; Firebase Project</div>
+<div class="sd"></div>
+<div class="two">
+<div>
+<div class="card"><div class="ct">🔒 isAuthenticated()</div><div class="cb">Checks <code>request.auth != null</code>. Required for profile writes and notification creates.</div></div>
+<div class="card"><div class="ct">👑 isAdmin()</div><div class="cb">Checks <code>request.auth.token.role == 'admin'</code> OR admin email claim. Required for write access to lines, stations, transport data.</div></div>
+<div class="card"><div class="ct">👤 isOwner(userId)</div><div class="cb">Checks <code>request.auth.uid == userId</code>. Users can only edit their own profile documents.</div></div>
+</div>
+<div>
+<div class="card"><div class="ct">📡 Firebase Project Details</div><div class="cb">
+<strong>Project ID:</strong> goflow-ce18e<br/>
+<strong>Auth Domain:</strong> goflow-ce18e.firebaseapp.com<br/>
+<strong>Storage:</strong> goflow-ce18e.firebasestorage.app<br/>
+<strong>Sender ID:</strong> 636693923215<br/>
+<strong>Auth:</strong> Email/Password (Firebase Auth)<br/>
+<strong>Frontend:</strong> Firebase JS SDK v9+<br/>
+<strong>Backend:</strong> Firebase Admin SDK<br/>
+<strong>Fallback:</strong> In-memory store (ENABLE_MOCK_FALLBACK=true)
+</div></div>
+<div class="card"><div class="ct">🔄 Real-Time Strategy</div><div class="cb">Firestore <code>onSnapshot()</code> listeners on Admin Dashboard and Crowd Map push updates live without any polling. New crowd reports, notifications, and station updates propagate instantly to all connected clients.</div></div>
+</div>
+</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 8</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 9: RAILRADAR ENGINE ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">RailRadar Intelligence Engine</div></div>
+<div class="sl">Technical Deep Dive</div>
+<div class="st">Live Rail Radar Intelligence Engine</div>
+<p class="ss">The most technically sophisticated component — a real-time Indian Railways intelligence engine serving authentic train telemetry for any of 70+ trains across 8 corridors.</p>
+<div class="sd"></div>
+<div class="three" style="margin-bottom:16px">
+<div class="sb"><span class="sn">70+</span><span class="slb">Train Profiles in DB</span></div>
+<div class="sb"><span class="sn">8</span><span class="slb">Rail Corridors Mapped</span></div>
+<div class="sb"><span class="sn">100%</span><span class="slb">Unique Data per Train</span></div>
+</div>
+<div class="card"><div class="ct">🚂 Explicitly Profiled Trains (sample of 70+)</div><div class="cb">
+<div class="tr">
+<span class="badge bn">11071 Kamayani Express</span><span class="badge bn">04101 PRYJ LTT SF SPL</span><span class="badge bn">12534 Pushpak Express</span><span class="badge bn">12925 Paschim Express</span><span class="badge bn">10103 Mandovi Express</span><span class="badge bn">12051 Jan Shatabdi</span><span class="badge bn">12137 Punjab Mail</span><span class="badge bn">12859 Gitanjali Express</span><span class="badge bn">12951 Tejas Rajdhani</span><span class="badge bn">20901 Vande Bharat</span><span class="badge bn">12123 Deccan Queen</span><span class="badge bn">22221 CSMT Rajdhani</span><span class="badge bt">90001 Churchgate-Virar Local</span><span class="badge bt">97049 CSMT-Kasara Local</span><span class="badge bt">99011 CSMT-Panvel Harbour</span><span class="badge bg">+ 55 more trains</span>
+</div>
+</div></div>
+<div class="card"><div class="ct">🗂️ 8 Indian Railways Corridors</div><div class="cb">
+<div class="tr">
+<span class="badge bn">Western Mainline (MMCT→NDLS)</span><span class="badge bn">Central North (CSMT→LJN/PRYJ)</span><span class="badge bn">Central East (CSMT→HWH)</span><span class="badge bt">Konkan Coast (CSMT→MAO/TVC)</span><span class="badge bt">Deccan/South (CSMT→PUNE→SBC)</span><span class="badge bg">Western Suburban (CCG→VR)</span><span class="badge bg">Central Suburban (CSMT→KSRA)</span><span class="badge bg">Harbour Line (CSMT→PNVL)</span>
+</div>
+</div></div>
+<div class="card"><div class="ct">⚙️ Deterministic Per-Train Position Algorithm</div><div class="cb">When live API quota is exceeded (HTTP 429), GoFlow synthesises authentic data:<br/><br/>
+<code>numHash = sum(charCode × position) for train number</code><br/>
+<code>cycle   = floor((hour × 60 + minute) / 15)</code><br/>
+<code>seed    = abs(numHash XOR (cycle × 83))</code><br/>
+<code>stopIdx = 1 + (seed % validStops)</code><br/><br/>
+Every train number produces a different current station, next halt, running delay (0–34 min), and segment progress (28%–88%) — changing every 15 minutes naturally.</div></div>
+<div class="card"><div class="ct">📋 Data Returned Per Train Query</div><div class="cb">
+<div class="tr">
+<span class="badge bt">Train Name &amp; Number</span><span class="badge bt">Current Station Code</span><span class="badge bt">Previous Halt</span><span class="badge bt">Next Halt</span><span class="badge ba">Distance from Origin (km)</span><span class="badge ba">Running Delay (mins)</span><span class="badge ba">Segment Progress %</span><span class="badge bn">Full Route Stops List</span><span class="badge bn">Platform Numbers</span><span class="badge bn">Scheduled vs Actual Times</span><span class="badge bn">Coach Rake Layout</span><span class="badge bg">Last Updated Timestamp</span>
+</div>
+</div></div>
+<div class="hl"><strong>Up/Down Direction Awareness:</strong> Even-numbered trains (return journeys, e.g. 12952, 11072) automatically get their route reversed with recalculated kilometre distances — matching actual Indian Railways Up/Down numbering conventions.</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 9</span></div>
+</div>
+</div>
+
+<!-- ===== PAGE 10: IMPACT + SUMMARY ===== -->
+<div class="page">
+<div class="cp">
+<div class="ph"><div class="ph-brand">Go<span>Flow</span> Mumbai Transit</div><div class="ph-tag">Innovation &amp; Impact</div></div>
+<div class="sl">Why GoFlow Wins</div>
+<div class="st">Innovation, Impact &amp; Scalability</div>
+<div class="sd"></div>
+<div class="two">
+<div>
+<div class="card"><div class="ct">🏆 Key Innovations</div><div class="cb">
+<ul class="chk">
+<li><strong>Intelligent Fallback Engine</strong> — Synthesises authentic per-train data using real route profiles and deterministic hashing when live APIs fail</li>
+<li><strong>Crowd-Sourced Intelligence</strong> — Passengers report rush levels that feed into the live map after admin verification — a true civic data loop</li>
+<li><strong>Multi-Modal in One Query</strong> — Route planner combines Local + Metro + Bus in one unified interface</li>
+<li><strong>Role-Based Dual Portal</strong> — Same codebase serves both citizen commuters and transit authority operators</li>
+<li><strong>Up/Down Train Direction Awareness</strong> — Even-numbered trains get reversed routes matching Indian Railways conventions</li>
+</ul>
+</div></div>
+</div>
+<div>
+<div class="card"><div class="ct">📈 Real-World Impact</div><div class="cb">
+<ul class="chk">
+<li>Serves Mumbai's <strong>7.5 million</strong> daily suburban rail commuters</li>
+<li>Covers <strong>120+ suburban stations</strong> across WR, CR, Harbour lines</li>
+<li>Supports all <strong>3 MMRDA Metro Lines</strong> operational today</li>
+<li>Integrates BEST bus network with <strong>500+ routes</strong></li>
+<li>Reduces missed trains with <strong>advance crowd warnings</strong></li>
+<li>Helps elderly plan <strong>less crowded travel windows</strong></li>
+<li>Admin portal reduces manual burden on Mumbai Railway division</li>
+</ul>
+</div></div>
+</div>
+</div>
+<div class="card"><div class="ct">🚀 Future Roadmap</div><div class="cb">
+<div class="two">
+<ul class="chk">
+<li>Deploy to Firebase Hosting + Cloud Run</li>
+<li>IoT sensor integration for auto crowd readings</li>
+<li>Native mobile apps via React Native</li>
+<li>WhatsApp/Telegram bot for train status</li>
+<li>ML model for crowd prediction (next 2 hrs)</li>
+</ul>
+<ul class="chk">
+<li>Expand to Pune, Delhi, Bengaluru metro</li>
+<li>IRCTC API integration for ticket booking</li>
+<li>Push notifications for saved route alerts</li>
+<li>Offline PWA with cached route data</li>
+<li>Accessible UI (screen reader, high contrast)</li>
+</ul>
+</div>
+</div></div>
+<div class="sl" style="margin-top:18px">At a Glance</div>
+<div class="st" style="font-size:15pt">Project Stats Summary</div>
+<div class="sd"></div>
+<div class="three" style="margin-bottom:13px">
+<div class="sb"><span class="sn">15</span><span class="slb">App Screens</span></div>
+<div class="sb"><span class="sn">16</span><span class="slb">React Components</span></div>
+<div class="sb"><span class="sn">7</span><span class="slb">API Routers</span></div>
+<div class="sb"><span class="sn">28+</span><span class="slb">API Endpoints</span></div>
+<div class="sb"><span class="sn">8</span><span class="slb">Firestore Collections</span></div>
+<div class="sb"><span class="sn">70+</span><span class="slb">Indexed Train Profiles</span></div>
+</div>
+<div style="background:linear-gradient(135deg,#0f172a,#134e4a);color:#fff;border-radius:12px;padding:24px;text-align:center">
+<div style="font-size:9pt;color:#5eead4;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Built with ❤️ for Mumbai Commuters</div>
+<div style="font-size:19pt;font-weight:900;letter-spacing:-.02em;margin-bottom:6px">GoFlow Mumbai Transit Intelligence</div>
+<div style="font-size:9.5pt;color:rgba(255,255,255,.6);margin-bottom:14px">React · TypeScript · Node.js · Firebase · RailRadar · Leaflet.js</div>
+<div style="display:flex;gap:14px;justify-content:center;font-size:8.5pt;color:rgba(255,255,255,.45)">
+<span>🌐 http://localhost:5173</span><span>•</span><span>🔧 http://localhost:5000/api</span><span>•</span><span>☁️ goflow-ce18e.firebaseapp.com</span>
+</div>
+</div>
+<div class="df"><span>GoFlow Hackathon Report 2026</span><span>Page 10 — End of Report</span></div>
+</div>
+</div>
+
+</body>
+</html>

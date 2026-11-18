@@ -1,27 +1,24 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.reportsRouter = void 0;
-const express_1 = require("express");
-const zod_1 = require("zod");
-const store_js_1 = require("../services/store.js");
-const auth_js_1 = require("../middleware/auth.js");
-exports.reportsRouter = (0, express_1.Router)();
-const submitReportSchema = zod_1.z.object({
-    stationId: zod_1.z.string().min(1),
-    stationName: zod_1.z.string().min(1),
-    mode: zod_1.z.enum(['train', 'metro', 'bus']),
-    lineId: zod_1.z.string().optional(),
-    crowdLevel: zod_1.z.enum(['low', 'medium', 'high']),
-    coachType: zod_1.z.enum(['general', 'ladies', 'first_class', 'ac', 'all']).optional(),
-    direction: zod_1.z.string().optional(),
-    notes: zod_1.z.string().max(500).optional()
+import { Router } from 'express';
+import { z } from 'zod';
+import { store } from '../services/store.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
+export const reportsRouter = Router();
+const submitReportSchema = z.object({
+    stationId: z.string().min(1),
+    stationName: z.string().min(1),
+    mode: z.enum(['train', 'metro', 'bus']),
+    lineId: z.string().optional(),
+    crowdLevel: z.enum(['low', 'medium', 'high']),
+    coachType: z.enum(['general', 'ladies', 'first_class', 'ac', 'all']).optional(),
+    direction: z.string().optional(),
+    notes: z.string().max(500).optional()
 });
-const reviewReportSchema = zod_1.z.object({
-    status: zod_1.z.enum(['verified', 'rejected']),
-    reviewNotes: zod_1.z.string().optional()
+const reviewReportSchema = z.object({
+    status: z.enum(['verified', 'rejected']),
+    reviewNotes: z.string().optional()
 });
 // List crowd reports (only verified are public; pending and rejected require admin)
-exports.reportsRouter.get('/', async (req, res) => {
+reportsRouter.get('/', async (req, res) => {
     try {
         const status = req.query.status;
         if (status === 'pending' || status === 'rejected' || !status) {
@@ -33,11 +30,11 @@ exports.reportsRouter.get('/', async (req, res) => {
                     return res.status(403).json({ error: 'Forbidden: Admin privilege required to view unverified reports' });
                 }
                 // Public commuter request without filter only receives verified reports
-                const reports = await store_js_1.store.getCrowdReports('verified');
+                const reports = await store.getCrowdReports('verified');
                 return res.json({ reports });
             }
         }
-        const reports = await store_js_1.store.getCrowdReports(status);
+        const reports = await store.getCrowdReports(status);
         return res.json({ reports });
     }
     catch (err) {
@@ -45,13 +42,13 @@ exports.reportsRouter.get('/', async (req, res) => {
     }
 });
 // Submit report
-exports.reportsRouter.post('/', auth_js_1.authenticate, async (req, res) => {
+reportsRouter.post('/', authenticate, async (req, res) => {
     try {
         const parse = submitReportSchema.safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid report data', details: parse.error.format() });
         }
-        const report = await store_js_1.store.addCrowdReport({
+        const report = await store.addCrowdReport({
             ...parse.data,
             userId: req.user.uid,
             userEmail: req.user.email,
@@ -64,14 +61,14 @@ exports.reportsRouter.post('/', auth_js_1.authenticate, async (req, res) => {
     }
 });
 // Review report (Admin)
-exports.reportsRouter.patch('/:id/review', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+reportsRouter.patch('/:id/review', authenticate, requireAdmin, async (req, res) => {
     try {
         const parse = reviewReportSchema.safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid review payload', details: parse.error.format() });
         }
         const { status, reviewNotes } = parse.data;
-        const reviewed = await store_js_1.store.reviewCrowdReport(req.params.id, status, req.user.displayName || 'Admin', reviewNotes);
+        const reviewed = await store.reviewCrowdReport(req.params.id, status, req.user.displayName || 'Admin', reviewNotes);
         if (!reviewed)
             return res.status(404).json({ error: 'Report not found' });
         return res.json({ report: reviewed });

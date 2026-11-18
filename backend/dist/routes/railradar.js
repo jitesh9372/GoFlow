@@ -1,17 +1,14 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.railradarRouter = void 0;
-const express_1 = require("express");
-const railradar_js_1 = require("../services/railradar.js");
-exports.railradarRouter = (0, express_1.Router)();
+import { Router } from 'express';
+import { railRadarService } from '../services/railradar.js';
+export const railradarRouter = Router();
 // Search trains by number or name
-exports.railradarRouter.get('/search', async (req, res) => {
+railradarRouter.get('/search', async (req, res) => {
     try {
         const q = req.query.q || '';
         if (!q || q.trim().length < 2) {
             return res.json({ trains: [] });
         }
-        const trains = await railradar_js_1.railRadarService.searchTrains(q);
+        const trains = await railRadarService.searchTrains(q);
         return res.json({ success: true, count: trains.length, trains });
     }
     catch (err) {
@@ -20,13 +17,13 @@ exports.railradarRouter.get('/search', async (req, res) => {
     }
 });
 // Live Running Status for a specific train
-exports.railradarRouter.get('/live/:trainNumber', async (req, res) => {
+railradarRouter.get('/live/:trainNumber', async (req, res) => {
     try {
         const { trainNumber } = req.params;
         if (!trainNumber) {
             return res.status(400).json({ error: 'Train number is required' });
         }
-        const live = await railradar_js_1.railRadarService.getLiveStatus(trainNumber);
+        const live = await railRadarService.getLiveStatus(trainNumber);
         return res.json({ success: true, live });
     }
     catch (err) {
@@ -35,14 +32,14 @@ exports.railradarRouter.get('/live/:trainNumber', async (req, res) => {
     }
 });
 // Trains Between two stations (e.g. MMCT and BVI)
-exports.railradarRouter.get('/between', async (req, res) => {
+railradarRouter.get('/between', async (req, res) => {
     try {
         const from = req.query.from || '';
         const to = req.query.to || '';
         if (!from || !to) {
             return res.status(400).json({ error: 'Both from and to station codes are required' });
         }
-        const result = await railradar_js_1.railRadarService.getTrainsBetween(from, to);
+        const result = await railRadarService.getTrainsBetween(from, to);
         return res.json({ success: true, ...result });
     }
     catch (err) {
@@ -51,9 +48,9 @@ exports.railradarRouter.get('/between', async (req, res) => {
     }
 });
 // Curated Popular Mumbai Trains with live status
-exports.railradarRouter.get('/popular', async (_req, res) => {
+railradarRouter.get('/popular', async (_req, res) => {
     try {
-        const popular = await railradar_js_1.railRadarService.getPopularMumbaiTrains();
+        const popular = await railRadarService.getPopularMumbaiTrains();
         return res.json({ success: true, count: popular.length, trains: popular });
     }
     catch (err) {
@@ -62,6 +59,6 @@ exports.railradarRouter.get('/popular', async (_req, res) => {
     }
 });
 // Integration Status & Health
-exports.railradarRouter.get('/status', (_req, res) => {
-    return res.json({ success: true, status: railradar_js_1.railRadarService.getStatus() });
+railradarRouter.get('/status', (_req, res) => {
+    return res.json({ success: true, status: railRadarService.getStatus() });
 });

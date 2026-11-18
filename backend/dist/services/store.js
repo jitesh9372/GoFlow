@@ -1,8 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.store = void 0;
-const mumbaiTransitData_js_1 = require("../data/mumbaiTransitData.js");
-const firebase_js_1 = require("../config/firebase.js");
+import { transitLines as initialLines, stations as initialStations, initialCrowdReadings, initialCrowdReports, initialNotifications } from '../data/mumbaiTransitData.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { isFirebaseConfigured, getFirestore } from '../config/firebase.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const getProfileCachePath = () => path.resolve(__dirname, '../data/profiles_cache.json');
 class TransitStore {
     lines = new Map();
     stations = new Map();
@@ -14,15 +17,22 @@ class TransitStore {
         this.seedLocalData();
     }
     seedLocalData() {
-        mumbaiTransitData_js_1.transitLines.forEach(l => this.lines.set(l.id, { ...l }));
-        mumbaiTransitData_js_1.stations.forEach(s => this.stations.set(s.id, { ...s }));
-        mumbaiTransitData_js_1.initialCrowdReadings.forEach(r => this.crowdReadings.set(r.id, { ...r }));
-        mumbaiTransitData_js_1.initialCrowdReports.forEach(r => this.crowdReports.set(r.id, { ...r }));
-        mumbaiTransitData_js_1.initialNotifications.forEach(n => this.notifications.set(n.id, { ...n }));
+        initialLines.forEach(l => this.lines.set(l.id, { ...l }));
+        initialStations.forEach(s => this.stations.set(s.id, { ...s }));
+        initialCrowdReadings.forEach(r => this.crowdReadings.set(r.id, { ...r }));
+        initialCrowdReports.forEach(r => this.crowdReports.set(r.id, { ...r }));
+        initialNotifications.forEach(n => this.notifications.set(n.id, { ...n }));
         // Demo Admin & Passenger profiles for out-of-the-box testing
         this.profiles.set('admin-1', {
             uid: 'admin-1',
-            email: 'admin@goflow.mumbai',
+            email: 'admin@123',
+            displayName: 'Mumbai Transit Control Admin',
+            role: 'admin',
+            createdAt: new Date().toISOString()
+        });
+        this.profiles.set('admin-goflow-master', {
+            uid: 'admin-goflow-master',
+            email: 'admin@gmail.com',
             displayName: 'Mumbai Transit Control Admin',
             role: 'admin',
             createdAt: new Date().toISOString()
@@ -54,12 +64,29 @@ class TransitStore {
                 }
             ]
         });
+        // Load any previously persisted profiles from disk
+        try {
+            const cachePath = getProfileCachePath();
+            if (fs.existsSync(cachePath)) {
+                const raw = fs.readFileSync(cachePath, 'utf8');
+                const list = JSON.parse(raw);
+                if (Array.isArray(list)) {
+                    list.forEach(p => {
+                        if (p && p.uid)
+                            this.profiles.set(p.uid, p);
+                    });
+                }
+            }
+        }
+        catch (e) {
+            // ignore
+        }
     }
     // --- Lines ---
     async getLines() {
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                const snap = await (0, firebase_js_1.getFirestore)().collection('lines').get();
+                const snap = await getFirestore().collection('lines').get();
                 if (!snap.empty) {
                     return snap.docs.map(doc => doc.data());
                 }
@@ -75,9 +102,9 @@ class TransitStore {
     }
     async createLine(line) {
         this.lines.set(line.id, line);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('lines').doc(line.id).set(line);
+                await getFirestore().collection('lines').doc(line.id).set(line);
             }
             catch (err) {
                 console.error('[Firestore] Error saving line:', err);
@@ -91,9 +118,9 @@ class TransitStore {
             return null;
         const updated = { ...existing, ...updates };
         this.lines.set(id, updated);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('lines').doc(id).set(updated, { merge: true });
+                await getFirestore().collection('lines').doc(id).set(updated, { merge: true });
             }
             catch (err) {
                 console.error('[Firestore] Error updating line:', err);
@@ -103,9 +130,9 @@ class TransitStore {
     }
     async deleteLine(id) {
         const deleted = this.lines.delete(id);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('lines').doc(id).delete();
+                await getFirestore().collection('lines').doc(id).delete();
             }
             catch (err) {
                 console.error('[Firestore] Error deleting line:', err);
@@ -115,9 +142,9 @@ class TransitStore {
     }
     // --- Stations ---
     async getStations() {
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                const snap = await (0, firebase_js_1.getFirestore)().collection('stations').get();
+                const snap = await getFirestore().collection('stations').get();
                 if (!snap.empty) {
                     return snap.docs.map(doc => doc.data());
                 }
@@ -133,9 +160,9 @@ class TransitStore {
     }
     async createStation(station) {
         this.stations.set(station.id, station);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('stations').doc(station.id).set(station);
+                await getFirestore().collection('stations').doc(station.id).set(station);
             }
             catch (err) {
                 console.error('[Firestore] Error saving station:', err);
@@ -149,9 +176,9 @@ class TransitStore {
             return null;
         const updated = { ...existing, ...updates };
         this.stations.set(id, updated);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('stations').doc(id).set(updated, { merge: true });
+                await getFirestore().collection('stations').doc(id).set(updated, { merge: true });
             }
             catch (err) {
                 console.error('[Firestore] Error updating station:', err);
@@ -161,9 +188,9 @@ class TransitStore {
     }
     async deleteStation(id) {
         const deleted = this.stations.delete(id);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('stations').doc(id).delete();
+                await getFirestore().collection('stations').doc(id).delete();
             }
             catch (err) {
                 console.error('[Firestore] Error deleting station:', err);
@@ -189,9 +216,9 @@ class TransitStore {
         const id = `cr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         const newReading = { id, ...reading };
         this.crowdReadings.set(id, newReading);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('crowdReadings').doc(id).set(newReading);
+                await getFirestore().collection('crowdReadings').doc(id).set(newReading);
             }
             catch (err) {
                 console.error('[Firestore] Error adding crowd reading:', err);
@@ -215,9 +242,9 @@ class TransitStore {
             timestamp: new Date().toISOString()
         };
         this.crowdReports.set(id, newReport);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('crowdReports').doc(id).set(newReport);
+                await getFirestore().collection('crowdReports').doc(id).set(newReport);
             }
             catch (err) {
                 console.error('[Firestore] Error adding report:', err);
@@ -253,9 +280,9 @@ class TransitStore {
                 verified: true
             });
         }
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('crowdReports').doc(id).set(updated, { merge: true });
+                await getFirestore().collection('crowdReports').doc(id).set(updated, { merge: true });
             }
             catch (err) {
                 console.error('[Firestore] Error reviewing report:', err);
@@ -279,9 +306,9 @@ class TransitStore {
             active: true
         };
         this.notifications.set(id, newNotif);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('notifications').doc(id).set(newNotif);
+                await getFirestore().collection('notifications').doc(id).set(newNotif);
             }
             catch (err) {
                 console.error('[Firestore] Error saving notification:', err);
@@ -295,9 +322,9 @@ class TransitStore {
             return false;
         existing.active = false;
         this.notifications.set(id, existing);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('notifications').doc(id).update({ active: false });
+                await getFirestore().collection('notifications').doc(id).update({ active: false });
             }
             catch (err) {
                 console.error('[Firestore] Error dismissing notification:', err);
@@ -307,9 +334,9 @@ class TransitStore {
     }
     // --- Profiles & Saved Routes ---
     async getProfile(uid) {
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        if (isFirebaseConfigured()) {
             try {
-                const doc = await (0, firebase_js_1.getFirestore)().collection('profiles').doc(uid).get();
+                const doc = await getFirestore().collection('profiles').doc(uid).get();
                 if (doc.exists)
                     return doc.data();
             }
@@ -319,11 +346,38 @@ class TransitStore {
         }
         return this.profiles.get(uid) || null;
     }
+    async getProfileByEmail(email) {
+        const targetEmail = email.trim().toLowerCase();
+        if (isFirebaseConfigured()) {
+            try {
+                const snap = await getFirestore().collection('profiles').where('email', '==', targetEmail).limit(1).get();
+                if (!snap.empty) {
+                    return snap.docs[0].data();
+                }
+            }
+            catch (err) {
+                console.warn('[Firestore] Error getting profile by email:', err);
+            }
+        }
+        for (const p of this.profiles.values()) {
+            if (p.email.trim().toLowerCase() === targetEmail) {
+                return p;
+            }
+        }
+        return null;
+    }
     async setProfile(profile) {
         this.profiles.set(profile.uid, profile);
-        if ((0, firebase_js_1.isFirebaseConfigured)()) {
+        try {
+            const cachePath = getProfileCachePath();
+            fs.writeFileSync(cachePath, JSON.stringify(Array.from(this.profiles.values()), null, 2), 'utf8');
+        }
+        catch (e) {
+            // ignore
+        }
+        if (isFirebaseConfigured()) {
             try {
-                await (0, firebase_js_1.getFirestore)().collection('profiles').doc(profile.uid).set(profile, { merge: true });
+                await getFirestore().collection('profiles').doc(profile.uid).set(profile, { merge: true });
             }
             catch (err) {
                 console.error('[Firestore] Error saving profile:', err);
@@ -419,4 +473,4 @@ class TransitStore {
         };
     }
 }
-exports.store = new TransitStore();
+export const store = new TransitStore();

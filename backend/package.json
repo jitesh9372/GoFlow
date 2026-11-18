@@ -2,6 +2,7 @@
   "name": "goflow-backend",
   "version": "1.0.0",
   "description": "GoFlow - Crowd-Aware Navigation System for Mumbai Backend API",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

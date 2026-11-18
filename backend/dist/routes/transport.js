@@ -1,58 +1,55 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.transportRouter = void 0;
-const express_1 = require("express");
-const zod_1 = require("zod");
-const store_js_1 = require("../services/store.js");
-const auth_js_1 = require("../middleware/auth.js");
-exports.transportRouter = (0, express_1.Router)();
+import { Router } from 'express';
+import { z } from 'zod';
+import { store } from '../services/store.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
+export const transportRouter = Router();
 // Validation Schemas
-const transitLineSchema = zod_1.z.object({
-    id: zod_1.z.string().min(1),
-    name: zod_1.z.string().min(1),
-    mode: zod_1.z.enum(['train', 'metro', 'bus']),
-    code: zod_1.z.string().min(1),
-    color: zod_1.z.string().min(1),
-    textColor: zod_1.z.string().default('#ffffff'),
-    operator: zod_1.z.string().min(1),
-    terminalA: zod_1.z.string().min(1),
-    terminalB: zod_1.z.string().min(1),
-    stationIds: zod_1.z.array(zod_1.z.string()).default([]),
-    totalDistanceKm: zod_1.z.number().nonnegative(),
-    averageFrequencyMins: zod_1.z.number().positive(),
-    operatingHours: zod_1.z.object({
-        start: zod_1.z.string(),
-        end: zod_1.z.string()
+const transitLineSchema = z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    mode: z.enum(['train', 'metro', 'bus']),
+    code: z.string().min(1),
+    color: z.string().min(1),
+    textColor: z.string().default('#ffffff'),
+    operator: z.string().min(1),
+    terminalA: z.string().min(1),
+    terminalB: z.string().min(1),
+    stationIds: z.array(z.string()).default([]),
+    totalDistanceKm: z.number().nonnegative(),
+    averageFrequencyMins: z.number().positive(),
+    operatingHours: z.object({
+        start: z.string(),
+        end: z.string()
     })
 });
-const stationSchema = zod_1.z.object({
-    id: zod_1.z.string().min(1),
-    name: zod_1.z.string().min(1),
-    marathiName: zod_1.z.string().optional(),
-    code: zod_1.z.string().min(1),
-    mode: zod_1.z.enum(['train', 'metro', 'bus']),
-    lineIds: zod_1.z.array(zod_1.z.string()).default([]),
-    latitude: zod_1.z.number(),
-    longitude: zod_1.z.number(),
-    zone: zod_1.z.string().optional(),
-    isInterchange: zod_1.z.boolean().default(false),
-    interchangeLines: zod_1.z.array(zod_1.z.string()).optional(),
-    facilities: zod_1.z.array(zod_1.z.string()).optional(),
-    averageDailyFootfall: zod_1.z.number().optional()
+const stationSchema = z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    marathiName: z.string().optional(),
+    code: z.string().min(1),
+    mode: z.enum(['train', 'metro', 'bus']),
+    lineIds: z.array(z.string()).default([]),
+    latitude: z.number(),
+    longitude: z.number(),
+    zone: z.string().optional(),
+    isInterchange: z.boolean().default(false),
+    interchangeLines: z.array(z.string()).optional(),
+    facilities: z.array(z.string()).optional(),
+    averageDailyFootfall: z.number().optional()
 });
 // --- Lines ---
-exports.transportRouter.get('/lines', async (_req, res) => {
+transportRouter.get('/lines', async (_req, res) => {
     try {
-        const lines = await store_js_1.store.getLines();
+        const lines = await store.getLines();
         return res.json({ lines });
     }
     catch (err) {
         return res.status(500).json({ error: 'Failed to fetch lines', details: err.message });
     }
 });
-exports.transportRouter.get('/lines/:id', async (req, res) => {
+transportRouter.get('/lines/:id', async (req, res) => {
     try {
-        const line = await store_js_1.store.getLineById(req.params.id);
+        const line = await store.getLineById(req.params.id);
         if (!line)
             return res.status(404).json({ error: 'Line not found' });
         return res.json({ line });
@@ -61,26 +58,26 @@ exports.transportRouter.get('/lines/:id', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch line', details: err.message });
     }
 });
-exports.transportRouter.post('/lines', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+transportRouter.post('/lines', authenticate, requireAdmin, async (req, res) => {
     try {
         const parse = transitLineSchema.safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid line data', details: parse.error.format() });
         }
-        const created = await store_js_1.store.createLine(parse.data);
+        const created = await store.createLine(parse.data);
         return res.status(201).json({ line: created });
     }
     catch (err) {
         return res.status(500).json({ error: 'Failed to create line', details: err.message });
     }
 });
-exports.transportRouter.put('/lines/:id', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+transportRouter.put('/lines/:id', authenticate, requireAdmin, async (req, res) => {
     try {
         const parse = transitLineSchema.partial().safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid update data', details: parse.error.format() });
         }
-        const updated = await store_js_1.store.updateLine(req.params.id, parse.data);
+        const updated = await store.updateLine(req.params.id, parse.data);
         if (!updated)
             return res.status(404).json({ error: 'Line not found' });
         return res.json({ line: updated });
@@ -89,9 +86,9 @@ exports.transportRouter.put('/lines/:id', auth_js_1.authenticate, auth_js_1.requ
         return res.status(500).json({ error: 'Failed to update line', details: err.message });
     }
 });
-exports.transportRouter.delete('/lines/:id', auth_js_1.authenticate, auth_js_1.requireAdmin, async (_req, res) => {
+transportRouter.delete('/lines/:id', authenticate, requireAdmin, async (_req, res) => {
     try {
-        const ok = await store_js_1.store.deleteLine(_req.params.id);
+        const ok = await store.deleteLine(_req.params.id);
         if (!ok)
             return res.status(404).json({ error: 'Line not found' });
         return res.json({ success: true, message: 'Line deleted' });
@@ -101,9 +98,9 @@ exports.transportRouter.delete('/lines/:id', auth_js_1.authenticate, auth_js_1.r
     }
 });
 // --- Stations ---
-exports.transportRouter.get('/stations', async (req, res) => {
+transportRouter.get('/stations', async (req, res) => {
     try {
-        let stations = await store_js_1.store.getStations();
+        let stations = await store.getStations();
         const mode = req.query.mode;
         const search = req.query.search;
         const lineId = req.query.lineId;
@@ -125,9 +122,9 @@ exports.transportRouter.get('/stations', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch stations', details: err.message });
     }
 });
-exports.transportRouter.get('/stations/:id', async (req, res) => {
+transportRouter.get('/stations/:id', async (req, res) => {
     try {
-        const station = await store_js_1.store.getStationById(req.params.id);
+        const station = await store.getStationById(req.params.id);
         if (!station)
             return res.status(404).json({ error: 'Station not found' });
         return res.json({ station });
@@ -136,26 +133,26 @@ exports.transportRouter.get('/stations/:id', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch station', details: err.message });
     }
 });
-exports.transportRouter.post('/stations', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+transportRouter.post('/stations', authenticate, requireAdmin, async (req, res) => {
     try {
         const parse = stationSchema.safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid station data', details: parse.error.format() });
         }
-        const created = await store_js_1.store.createStation(parse.data);
+        const created = await store.createStation(parse.data);
         return res.status(201).json({ station: created });
     }
     catch (err) {
         return res.status(500).json({ error: 'Failed to create station', details: err.message });
     }
 });
-exports.transportRouter.put('/stations/:id', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+transportRouter.put('/stations/:id', authenticate, requireAdmin, async (req, res) => {
     try {
         const parse = stationSchema.partial().safeParse(req.body);
         if (!parse.success) {
             return res.status(400).json({ error: 'Invalid update data', details: parse.error.format() });
         }
-        const updated = await store_js_1.store.updateStation(req.params.id, parse.data);
+        const updated = await store.updateStation(req.params.id, parse.data);
         if (!updated)
             return res.status(404).json({ error: 'Station not found' });
         return res.json({ station: updated });
@@ -164,9 +161,9 @@ exports.transportRouter.put('/stations/:id', auth_js_1.authenticate, auth_js_1.r
         return res.status(500).json({ error: 'Failed to update station', details: err.message });
     }
 });
-exports.transportRouter.delete('/stations/:id', auth_js_1.authenticate, auth_js_1.requireAdmin, async (req, res) => {
+transportRouter.delete('/stations/:id', authenticate, requireAdmin, async (req, res) => {
     try {
-        const ok = await store_js_1.store.deleteStation(req.params.id);
+        const ok = await store.deleteStation(req.params.id);
         if (!ok)
             return res.status(404).json({ error: 'Station not found' });
         return res.json({ success: true, message: 'Station deleted' });

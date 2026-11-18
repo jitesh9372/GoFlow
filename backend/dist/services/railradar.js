@@ -1,10 +1,4 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.railRadarService = void 0;
-const https_1 = __importDefault(require("https"));
+import https from 'https';
 class RailRadarService {
     apiKey;
     baseUrl;
@@ -38,7 +32,7 @@ class RailRadarService {
         this.lastRequestTime = new Date().toISOString();
         return new Promise((resolve, reject) => {
             const url = new URL(path, this.baseUrl);
-            const req = https_1.default.request({
+            const req = https.request({
                 hostname: url.hostname,
                 path: url.pathname + url.search,
                 method: 'GET',
@@ -844,4 +838,4 @@ class RailRadarService {
         };
     }
 }
-exports.railRadarService = new RailRadarService();
+export const railRadarService = new RailRadarService();

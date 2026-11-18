@@ -1,0 +1,59 @@
+[
+  {
+    "uid": "admin-1",
+    "email": "admin@123",
+    "displayName": "Mumbai Transit Control Admin",
+    "role": "admin",
+    "createdAt": "2026-10-28T05:53:41.706Z"
+  },
+  {
+    "uid": "admin-goflow-master",
+    "email": "admin@gmail.com",
+    "displayName": "Mumbai Transit Control Admin",
+    "role": "admin",
+    "createdAt": "2026-10-28T05:53:41.706Z"
+  },
+  {
+    "uid": "passenger-1",
+    "email": "passenger@goflow.mumbai",
+    "displayName": "Daily Mumbai Commuter",
+    "role": "passenger",
+    "createdAt": "2026-10-28T05:53:41.706Z",
+    "savedRoutes": [
+      {
+        "id": "sr-1",
+        "fromStationId": "stn-borivali",
+        "fromStationName": "Borivali",
+        "toStationId": "stn-churchgate",
+        "toStationName": "Churchgate",
+        "preferredMode": "train",
+        "savedAt": "2026-10-28T05:53:41.706Z"
+      },
+      {
+        "id": "sr-2",
+        "fromStationId": "stn-thane",
+        "fromStationName": "Thane",
+        "toStationId": "stn-dadar-cr",
+        "toStationName": "Dadar (Central)",
+        "preferredMode": "train",
+        "savedAt": "2026-10-28T05:53:41.706Z"
+      }
+    ]
+  },
+  {
+    "uid": "fEAF7JxCLbMnxG0zr1heNGT0zQQ2",
+    "email": "jatin@gmail.com",
+    "displayName": "jatin",
+    "role": "passenger",
+    "createdAt": "2026-10-28T05:53:14.444Z",
+    "savedRoutes": []
+  },
+  {
+    "uid": "MLkR9i4X5iOF9mq6CO1ar3TAhCr2",
+    "email": "testcommuter@gmail.com",
+    "displayName": "Test Commuter",
+    "role": "passenger",
+    "createdAt": "2026-10-28T05:53:55.282Z",
+    "savedRoutes": []
+  }
+]

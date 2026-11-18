@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.initialNotifications = exports.initialCrowdReports = exports.initialCrowdReadings = exports.stations = exports.transitLines = void 0;
-exports.transitLines = [
+export const transitLines = [
     {
         id: 'western-line',
         name: 'Western Suburban Line',
@@ -286,7 +283,7 @@ exports.transitLines = [
         operatingHours: { start: '06:00', end: '22:00' }
     }
 ];
-exports.stations = [
+export const stations = [
     // --- Western Line Stations ---
     {
         id: 'stn-churchgate',
@@ -1597,7 +1594,7 @@ exports.stations = [
         facilities: ['BEST Bus Stop shelter']
     }
 ];
-exports.initialCrowdReadings = [
+export const initialCrowdReadings = [
     {
         id: 'cr-1',
         stationId: 'stn-dadar-wr',
@@ -1781,7 +1778,7 @@ exports.initialCrowdReadings = [
         verified: true
     }
 ];
-exports.initialCrowdReports = [
+export const initialCrowdReports = [
     {
         id: 'rep-1',
         userId: 'user-sample-1',
@@ -1869,7 +1866,7 @@ exports.initialCrowdReports = [
         timestamp: new Date(Date.now() - 8 * 60000).toISOString()
     }
 ];
-exports.initialNotifications = [
+export const initialNotifications = [
     {
         id: 'notif-1',
         title: 'Peak Hour Heavy Commuter Flow Alert',

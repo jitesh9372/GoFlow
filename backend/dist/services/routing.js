@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.findRoutes = findRoutes;
-const store_js_1 = require("./store.js");
+import { store } from './store.js';
 const INTERCHANGE_PAIRS = [
     {
         station1: 'stn-dadar-wr',
@@ -224,10 +221,10 @@ function buildTransitConnections(fromStation, toStation, allStations, allLines) 
     })).slice(0, 3);
     return connections;
 }
-async function findRoutes(fromStationId, toStationId, allowedModes = ['train', 'metro', 'bus']) {
-    const allStations = await store_js_1.store.getStations();
-    const allLines = await store_js_1.store.getLines();
-    const allReadings = await store_js_1.store.getCrowdReadings();
+export async function findRoutes(fromStationId, toStationId, allowedModes = ['train', 'metro', 'bus']) {
+    const allStations = await store.getStations();
+    const allLines = await store.getLines();
+    const allReadings = await store.getCrowdReadings();
     const stationMap = new Map(allStations.map(s => [s.id, s]));
     const fromStation = stationMap.get(fromStationId);
     const toStation = stationMap.get(toStationId);

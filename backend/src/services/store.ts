@@ -15,7 +15,14 @@ import {
   initialCrowdReports,
   initialNotifications
 } from '../data/mumbaiTransitData.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { isFirebaseConfigured, getFirestore } from '../config/firebase.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const getProfileCachePath = () => path.resolve(__dirname, '../data/profiles_cache.json');
 
 class TransitStore {
   private lines: Map<string, TransitLine> = new Map();
@@ -80,6 +87,22 @@ class TransitStore {
         }
       ]
     });
+
+    // Load any previously persisted profiles from disk
+    try {
+      const cachePath = getProfileCachePath();
+      if (fs.existsSync(cachePath)) {
+        const raw = fs.readFileSync(cachePath, 'utf8');
+        const list: UserProfile[] = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          list.forEach(p => {
+            if (p && p.uid) this.profiles.set(p.uid, p);
+          });
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 
   // --- Lines ---
@@ -374,6 +397,12 @@ class TransitStore {
 
   async setProfile(profile: UserProfile): Promise<UserProfile> {
     this.profiles.set(profile.uid, profile);
+    try {
+      const cachePath = getProfileCachePath();
+      fs.writeFileSync(cachePath, JSON.stringify(Array.from(this.profiles.values()), null, 2), 'utf8');
+    } catch (e) {
+      // ignore
+    }
     if (isFirebaseConfigured()) {
       try {
         await getFirestore()!.collection('profiles').doc(profile.uid).set(profile, { merge: true });

@@ -1,61 +1,147 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.authenticate = authenticate;
-exports.requireAdmin = requireAdmin;
-const firebase_js_1 = require("../config/firebase.js");
-async function authenticate(req, res, next) {
+import { getAdminAuth, isFirebaseConfigured } from '../config/firebase.js';
+import { store } from '../services/store.js';
+export async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
-    const mockRoleHeader = req.headers['x-mock-role'];
-    // Check for mock/dev tokens or mock header
-    if (mockRoleHeader === 'admin' || authHeader === 'Bearer mock-admin-token') {
-        req.user = {
-            uid: 'admin-1',
-            email: 'admin@123',
-            displayName: 'Mumbai Transit Control Admin',
-            role: 'admin'
-        };
-        return next();
-    }
-    if (mockRoleHeader === 'passenger' || authHeader === 'Bearer mock-passenger-token') {
-        req.user = {
-            uid: 'passenger-1',
-            email: 'passenger@goflow.mumbai',
-            displayName: 'Daily Mumbai Commuter',
-            role: 'passenger'
-        };
-        return next();
+    // Explicit mock admin token for seeded admin testing/development
+    if (authHeader === 'Bearer mock-admin-token') {
+        const adminProfile = (await store.getProfile('admin-goflow-master')) || (await store.getProfile('admin-1'));
+        if (adminProfile && adminProfile.role === 'admin') {
+            req.user = {
+                uid: adminProfile.uid,
+                email: adminProfile.email,
+                displayName: adminProfile.displayName,
+                role: 'admin'
+            };
+            return next();
+        }
+        return res.status(403).json({ error: 'Forbidden: No valid role claim found. Please sign up first.' });
     }
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Missing or malformed Authorization header' });
     }
-    const token = authHeader.split('Bearer ')[1];
-    if ((0, firebase_js_1.isFirebaseConfigured)() && (0, firebase_js_1.getAdminAuth)()) {
+    const token = authHeader.split('Bearer ')[1].trim();
+    let decodedUid = '';
+    let decodedEmail = '';
+    let decodedName = '';
+    let decodedRole = null;
+    if (isFirebaseConfigured() && getAdminAuth()) {
         try {
-            const decoded = await (0, firebase_js_1.getAdminAuth)().verifyIdToken(token);
-            const role = (decoded.email === 'admin@123' || decoded.email === 'admin@gmail.com') ? 'admin' : (decoded.role || 'passenger');
-            req.user = {
-                uid: decoded.uid,
-                email: decoded.email || '',
-                displayName: decoded.name || decoded.email?.split('@')[0] || (role === 'admin' ? 'Transit Admin' : 'Passenger'),
-                role
-            };
-            return next();
+            const decoded = await getAdminAuth().verifyIdToken(token);
+            decodedUid = decoded.uid;
+            decodedEmail = (decoded.email || '').toLowerCase();
+            decodedName = decoded.name || '';
+            if (decodedEmail === 'admin@123' ||
+                decodedEmail === 'admin@gmail.com' ||
+                decoded.role === 'admin' ||
+                decoded.admin === true) {
+                decodedRole = 'admin';
+            }
+            else if (decoded.role === 'passenger') {
+                decodedRole = 'passenger';
+            }
         }
         catch (err) {
-            console.error('[Auth Middleware] Token verification failed:', err.message);
+            console.error('[Auth Middleware] Firebase verifyIdToken failed:', err.message);
             return res.status(401).json({ error: 'Invalid or expired Firebase auth token', details: err.message });
         }
     }
-    // Fallback for development if token is present
+    else {
+        // Development / Local / Fallback token parsing
+        if (token.includes('.')) {
+            try {
+                const parts = token.split('.');
+                const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+                const payload = JSON.parse(payloadJson);
+                const nowSec = Math.floor(Date.now() / 1000);
+                if (payload.exp && payload.exp < nowSec) {
+                    return res.status(401).json({ error: 'Token expired' });
+                }
+                decodedUid = payload.user_id || payload.sub || payload.uid;
+                decodedEmail = (payload.email || '').toLowerCase();
+                decodedName = payload.name || '';
+                if (decodedEmail === 'admin@123' ||
+                    decodedEmail === 'admin@gmail.com' ||
+                    payload.role === 'admin' ||
+                    payload.admin === true) {
+                    decodedRole = 'admin';
+                }
+                else if (payload.role === 'passenger') {
+                    decodedRole = 'passenger';
+                }
+            }
+            catch (err) {
+                return res.status(401).json({ error: 'Invalid auth token', details: err.message });
+            }
+        }
+        else {
+            return res.status(401).json({ error: 'Invalid auth token format' });
+        }
+    }
+    // 1. Resolve Profile Document from store (by UID or Email)
+    let profile = await store.getProfile(decodedUid);
+    if (!profile && decodedEmail) {
+        profile = await store.getProfileByEmail(decodedEmail);
+        if (profile) {
+            profile.uid = decodedUid;
+            await store.setProfile(profile);
+        }
+    }
+    // 2. Resolve Role from profile or email if token did not contain custom claims
+    if (!decodedRole) {
+        if (profile?.role) {
+            decodedRole = profile.role;
+        }
+        else if (decodedEmail === 'admin@123' || decodedEmail === 'admin@gmail.com') {
+            decodedRole = 'admin';
+        }
+        else if (decodedEmail) {
+            decodedRole = 'passenger';
+        }
+    }
+    // 3. Profile Document Enforcement / Auto-provision for authenticated users
+    if (!profile) {
+        if (decodedRole === 'admin' && (decodedEmail === 'admin@gmail.com' || decodedEmail === 'admin@123')) {
+            profile = await store.setProfile({
+                uid: decodedUid,
+                email: decodedEmail,
+                displayName: decodedName || 'Mumbai Transit Control Admin',
+                role: 'admin',
+                createdAt: new Date().toISOString()
+            });
+        }
+        else if (decodedEmail) {
+            profile = await store.setProfile({
+                uid: decodedUid,
+                email: decodedEmail,
+                displayName: decodedName || decodedEmail.split('@')[0] || 'Commuter',
+                role: decodedRole || 'passenger',
+                createdAt: new Date().toISOString(),
+                savedRoutes: []
+            });
+        }
+        else {
+            return res.status(403).json({ error: 'Forbidden: No profile document found. Please sign up first.' });
+        }
+    }
+    // 4. Role Claim Enforcement
+    if (!decodedRole) {
+        return res.status(403).json({ error: 'Forbidden: No valid role claim found. Please sign up first.' });
+    }
+    // Ensure role matches
+    if (profile.role !== decodedRole && decodedRole !== 'admin') {
+        profile.role = decodedRole;
+        await store.setProfile(profile);
+    }
     req.user = {
-        uid: 'passenger-1',
-        email: 'passenger@goflow.mumbai',
-        displayName: 'Daily Mumbai Commuter',
-        role: 'passenger'
+        uid: profile.uid,
+        email: profile.email,
+        displayName: profile.displayName,
+        role: profile.role
     };
     return next();
 }
-function requireAdmin(req, res, next) {
+export const verifyToken = authenticate;
+export function requireAdmin(req, res, next) {
     if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
     }

@@ -244,9 +244,19 @@ export const SignInPage: React.FC = () => {
 
                   {/* Error Alert */}
                   {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2 animate-fadeIn">
-                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                      <span id="auth-error-message">{error}</span>
+                    <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle size={15} className="shrink-0" />
+                        <span id="auth-error-message">{error}</span>
+                      </div>
+                      {error.includes('No account found') && (
+                        <Link
+                          to={`/signup?email=${encodeURIComponent(email)}`}
+                          className="font-bold underline text-rose-900 hover:text-rose-950 shrink-0"
+                        >
+                          Sign Up Now →
+                        </Link>
+                      )}
                     </div>
                   )}
 

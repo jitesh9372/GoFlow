@@ -1,29 +1,24 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
-const auth_js_1 = require("./routes/auth.js");
-const transport_js_1 = require("./routes/transport.js");
-const crowd_js_1 = require("./routes/crowd.js");
-const reports_js_1 = require("./routes/reports.js");
-const routes_js_1 = require("./routes/routes.js");
-const notifications_js_1 = require("./routes/notifications.js");
-const railradar_js_1 = require("./routes/railradar.js");
-dotenv_1.default.config();
-const app = (0, express_1.default)();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { authRouter } from './routes/auth.js';
+import { transportRouter } from './routes/transport.js';
+import { crowdRouter } from './routes/crowd.js';
+import { reportsRouter } from './routes/reports.js';
+import { routesRouter } from './routes/routes.js';
+import { notificationsRouter } from './routes/notifications.js';
+import { railradarRouter } from './routes/railradar.js';
+dotenv.config();
+const app = express();
 const port = process.env.PORT || 5000;
 // Middleware
-app.use((0, cors_1.default)({
+app.use(cors({
     origin: true, // Allow frontend dev server and production origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-mock-role']
 }));
-app.use(express_1.default.json());
+app.use(express.json());
 // Request logger for transit API calls
 app.use((req, _res, next) => {
     const timestamp = new Date().toISOString().substring(11, 19);
@@ -40,13 +35,13 @@ app.get('/api/health', (_req, res) => {
     });
 });
 // Register routers
-app.use('/api/auth', auth_js_1.authRouter);
-app.use('/api/transport', transport_js_1.transportRouter);
-app.use('/api/crowd', crowd_js_1.crowdRouter);
-app.use('/api/reports', reports_js_1.reportsRouter);
-app.use('/api/routes', routes_js_1.routesRouter);
-app.use('/api/notifications', notifications_js_1.notificationsRouter);
-app.use('/api/railradar', railradar_js_1.railradarRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/transport', transportRouter);
+app.use('/api/crowd', crowdRouter);
+app.use('/api/reports', reportsRouter);
+app.use('/api/routes', routesRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/railradar', railradarRouter);
 // Global 404 handler
 app.use((_req, res) => {
     res.status(404).json({ error: 'Endpoint not found' });

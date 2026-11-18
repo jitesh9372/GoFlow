@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Mail, Lock, AlertCircle, ArrowRight, Loader2, Check, Train } from 'lucide-react';
 import { useAuth, formatAuthError } from '../../context/AuthContext';
 import { TransitAuthVisual } from '../../components/TransitAuthVisual';
@@ -7,10 +7,11 @@ import { TiltCard } from '../../components/TiltCard';
 
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signUpWithEmail } = useAuth();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 

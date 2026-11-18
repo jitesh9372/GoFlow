@@ -107,6 +107,46 @@ const INTERCHANGE_PAIRS: InterchangePair[] = [
   }
 ];
 
+// Major Fast Local Train Stop IDs on Western Railway
+const WR_FAST_STATIONS = new Set([
+  'stn-churchgate', 'stn-marine-lines', 'stn-charni-road', 'stn-grant-road',
+  'stn-mumbai-central', 'stn-dadar-wr', 'stn-bandra', 'stn-andheri',
+  'stn-borivali', 'stn-bhayandar', 'stn-vasai-road', 'stn-virar'
+]);
+
+// Major Fast Local Train Stop IDs on Central Railway
+const CR_FAST_STATIONS = new Set([
+  'stn-csmt', 'stn-byculla', 'stn-dadar-cr', 'stn-kurla',
+  'stn-ghatkopar', 'stn-vikhroli', 'stn-bhandup', 'stn-mulund',
+  'stn-thane', 'stn-diva', 'stn-dombivli', 'stn-kalyan'
+]);
+
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function calculateStepDuration(mode: TransportMode, stopsCount: number, fromStn: Station, toStn: Station): number {
+  const dist = getDistanceKm(fromStn.latitude, fromStn.longitude, toStn.latitude, toStn.longitude);
+  if (mode === 'metro') {
+    // Dedicated grade-separated tracks: ~2.2 mins per stop
+    return Math.max(4, Math.round(stopsCount * 2.2));
+  }
+  if (mode === 'bus') {
+    // Road transit in Mumbai traffic: ~3.2 mins/km + stop dwell times
+    return Math.max(10, Math.round(dist * 3.2) + Math.round(stopsCount * 1.5));
+  }
+  // Local suburban train
+  return Math.max(5, Math.round(stopsCount * 2.4));
+}
+
 function buildMetroDetails(line: TransitLine, fromStn: Station, toStn: Station): MetroDetails {
   const isLine3 = line.id === 'metro-line-3';
   return {
@@ -150,11 +190,11 @@ function buildBusDetails(line: TransitLine, fromStn: Station, toStn: Station): B
     busRouteNumber: routeNo,
     busType,
     operator: 'BEST Undertaking',
-    boardingStop: `${fromStn.name} BEST Bus Depot / Bay`,
+    boardingStop: `${fromStn.name} BEST Bus Stop`,
     alightingStop: `${toStn.name} Bus Stand`,
     frequencyMins: line.averageFrequencyMins || 10,
     frequencyText: `Every ${line.averageFrequencyMins || 10} mins`,
-    operatingHours: `${line.operatingHours?.start || '05:30'} - ${line.operatingHours?.end || '23:00'}` ,
+    operatingHours: `${line.operatingHours?.start || '05:30'} - ${line.operatingHours?.end || '23:00'}`,
     fareType: isAc ? '₹6 - ₹25 (Chalo Card / UPI QR / Cash)' : '₹6 - ₹15 (Chalo Card / UPI QR / Cash)',
     destinationBoardText: `Towards ${line.terminalB}`
   };
@@ -163,8 +203,8 @@ function buildBusDetails(line: TransitLine, fromStn: Station, toStn: Station): B
 function buildTrainDetails(
   line: TransitLine,
   isFast: boolean,
-  fromStn: Station,
-  toStn: Station
+  _fromStn: Station,
+  _toStn: Station
 ): LocalTrainDetails {
   return {
     serviceType: isFast ? 'Fast Local' : 'Slow Local',
@@ -193,85 +233,86 @@ function buildTransitConnections(
     destinationBestBuses: []
   };
 
-  // 1. Nearby Metro stations for Origin
-  if (fromStation.mode === 'metro') {
-    connections.originMetroStations?.push({
-      name: fromStation.name,
-      lineName: 'Direct Metro Access',
-      lineCode: fromStation.code || 'MTR',
-      distanceWalkMins: 0
-    });
-  } else {
-    // Find stations within Western/Eastern vicinity or interchange
-    const fromZonePrefix = fromStation.zone ? fromStation.zone.split(' ')[0] : '';
-    const nearbyOriginMetro = allStations.filter(
-      s => s.mode === 'metro' &&
-      ((fromZonePrefix && s.zone?.includes(fromZonePrefix)) ||
-       s.name.toLowerCase().includes(fromStation.name.toLowerCase().split(' ')[0]) ||
-       fromStation.interchangeLines?.some(l => s.lineIds.includes(l)))
-    ).slice(0, 2);
+  const findNearbyMetro = (stn: Station) => {
+    if (stn.mode === 'metro') {
+      return [{
+        name: stn.name,
+        lineName: allLines.find(l => stn.lineIds.includes(l.id))?.name || 'Direct Metro',
+        lineCode: stn.code || 'MTR',
+        distanceWalkMins: 0
+      }];
+    }
 
-    connections.originMetroStations = nearbyOriginMetro.map(m => ({
-      name: m.name,
-      lineName: allLines.find(l => m.lineIds.includes(l.id))?.name || 'Mumbai Metro',
-      lineCode: m.code || 'MTR',
-      distanceWalkMins: m.name.toLowerCase().includes(fromStation.name.toLowerCase()) ? 3 : 7
-    }));
-  }
+    // Direct interchange link check
+    const pairedStationIds = INTERCHANGE_PAIRS
+      .filter(p => p.station1 === stn.id || p.station2 === stn.id)
+      .map(p => (p.station1 === stn.id ? p.station2 : p.station1));
 
-  // 2. Nearby Metro stations for Destination
-  if (toStation.mode === 'metro') {
-    connections.destinationMetroStations?.push({
-      name: toStation.name,
-      lineName: 'Direct Metro Station',
-      lineCode: toStation.code || 'MTR',
-      distanceWalkMins: 0
-    });
-  } else {
-    const toZonePrefix = toStation.zone ? toStation.zone.split(' ')[0] : '';
-    const nearbyDestMetro = allStations.filter(
-      s => s.mode === 'metro' &&
-      ((toZonePrefix && s.zone?.includes(toZonePrefix)) ||
-       s.name.toLowerCase().includes(toStation.name.toLowerCase().split(' ')[0]) ||
-       toStation.interchangeLines?.some(l => s.lineIds.includes(l)))
-    ).slice(0, 2);
+    const pairedMetros = allStations.filter(s => pairedStationIds.includes(s.id) && s.mode === 'metro');
+    if (pairedMetros.length > 0) {
+      return pairedMetros.map(m => {
+        const pair = INTERCHANGE_PAIRS.find(
+          p => (p.station1 === stn.id && p.station2 === m.id) || (p.station2 === stn.id && p.station1 === m.id)
+        );
+        return {
+          name: m.name,
+          lineName: allLines.find(l => m.lineIds.includes(l.id))?.name || 'Mumbai Metro',
+          lineCode: m.code || 'MTR',
+          distanceWalkMins: pair?.walkMins || 3
+        };
+      });
+    }
 
-    connections.destinationMetroStations = nearbyDestMetro.map(m => ({
-      name: m.name,
-      lineName: allLines.find(l => m.lineIds.includes(l.id))?.name || 'Mumbai Metro',
-      lineCode: m.code || 'MTR',
-      distanceWalkMins: m.name.toLowerCase().includes(toStation.name.toLowerCase()) ? 3 : 8
-    }));
-  }
+    // Geographically nearby metros (within 2.2 km)
+    return allStations
+      .filter(s => s.mode === 'metro' && s.id !== stn.id)
+      .map(s => ({
+        station: s,
+        distKm: getDistanceKm(stn.latitude, stn.longitude, s.latitude, s.longitude)
+      }))
+      .filter(item => item.distKm <= 2.2)
+      .sort((a, b) => a.distKm - b.distKm)
+      .slice(0, 2)
+      .map(item => ({
+        name: item.station.name,
+        lineName: allLines.find(l => item.station.lineIds.includes(l.id))?.name || 'Mumbai Metro',
+        lineCode: item.station.code || 'MTR',
+        distanceWalkMins: Math.max(3, Math.round(item.distKm * 12))
+      }));
+  };
 
-  // 3. Origin BEST Buses
-  const busLines = allLines.filter(l => l.mode === 'bus');
-  const originBuses = busLines.filter(l =>
-    l.stationIds.includes(fromStation.id) ||
-    fromStation.interchangeLines?.includes(l.id)
-  );
+  connections.originMetroStations = findNearbyMetro(fromStation);
+  connections.destinationMetroStations = findNearbyMetro(toStation);
 
-  connections.originBestBuses = (originBuses.length > 0 ? originBuses : busLines.slice(0, 2)).map(b => ({
-    routeNumber: b.code || b.name.split(' ')[2] || 'BEST',
-    destination: b.terminalB,
-    frequency: `Every ${b.averageFrequencyMins}m`,
-    busType: b.id.includes('as4') || b.id.includes('312') || b.id.includes('a115') ? 'Electric AC' : 'Ordinary',
-    stopName: `${fromStation.name} Bus Stand Bay 1`
-  })).slice(0, 3);
+  const findServingBuses = (stn: Station, isOrigin: boolean) => {
+    const busLines = allLines.filter(l => l.mode === 'bus');
+    const servingBusLines = busLines.filter(l =>
+      l.stationIds.includes(stn.id) ||
+      l.stationIds.some(sid => {
+        const s = allStations.find(st => st.id === sid);
+        return s && getDistanceKm(stn.latitude, stn.longitude, s.latitude, s.longitude) <= 0.8;
+      })
+    );
 
-  // 4. Destination BEST Buses
-  const destBuses = busLines.filter(l =>
-    l.stationIds.includes(toStation.id) ||
-    toStation.interchangeLines?.includes(l.id)
-  );
+    return servingBusLines.map(b => {
+      const isAc =
+        b.id.includes('as4') ||
+        b.id.includes('312') ||
+        b.id.includes('a115') ||
+        b.name.toLowerCase().includes('ac');
 
-  connections.destinationBestBuses = (destBuses.length > 0 ? destBuses : busLines.slice(0, 2)).map(b => ({
-    routeNumber: b.code || b.name.split(' ')[2] || 'BEST',
-    destination: b.terminalA,
-    frequency: `Every ${b.averageFrequencyMins}m`,
-    busType: b.id.includes('as4') || b.id.includes('312') || b.id.includes('a115') ? 'Electric AC' : 'Ordinary',
-    stopName: `${toStation.name} Bus Stand`
-  })).slice(0, 3);
+      return {
+        routeNumber: b.code || b.name.split(' ')[2] || 'BEST',
+        destination: isOrigin ? b.terminalB : b.terminalA,
+        frequency: `Every ${b.averageFrequencyMins || 10}m`,
+        busType: isAc ? 'Electric AC' : 'Ordinary',
+        stopName: `${stn.name} Bus Stand`
+      };
+    }).slice(0, 3);
+  };
+
+  connections.originBestBuses = findServingBuses(fromStation, true);
+  connections.destinationBestBuses = findServingBuses(toStation, false);
 
   return connections;
 }
@@ -289,11 +330,7 @@ export async function findRoutes(
   const fromStation = stationMap.get(fromStationId);
   const toStation = stationMap.get(toStationId);
 
-  if (!fromStation || !toStation) {
-    return [];
-  }
-
-  if (fromStationId === toStationId) {
+  if (!fromStation || !toStation || fromStationId === toStationId) {
     return [];
   }
 
@@ -303,7 +340,7 @@ export async function findRoutes(
     const reading = crowdMap.get(stnId);
     if (reading) return { level: reading.crowdLevel, source: reading.source };
     const name = stationMap.get(stnId)?.name.toLowerCase() || '';
-    if (name.includes('dadar') || name.includes('andheri') || name.includes('kurla') || name.includes('ghatkopar')) {
+    if (name.includes('dadar') || name.includes('andheri') || name.includes('kurla') || name.includes('ghatkopar') || name.includes('borivali') || name.includes('thane')) {
       return { level: 'high', source: 'historical_pattern' };
     }
     return { level: 'medium', source: 'historical_pattern' };
@@ -311,35 +348,42 @@ export async function findRoutes(
 
   const results: RouteOption[] = [];
   const transitConnections = buildTransitConnections(fromStation, toStation, allStations, allLines);
-
-  // Filter lines by allowed modes
   const filteredLines = allLines.filter(l => allowedModes.includes(l.mode));
 
-  // --- Step 1: Direct Single Line connections ---
+  const directDistanceKm = getDistanceKm(
+    fromStation.latitude, fromStation.longitude,
+    toStation.latitude, toStation.longitude
+  );
+
+  // Helper: Slice intermediate station names strictly in direction of travel
+  const getIntermediateNames = (line: TransitLine, sIdx: number, eIdx: number): string[] => {
+    if (sIdx === eIdx) return [];
+    const ids = sIdx < eIdx
+      ? line.stationIds.slice(sIdx + 1, eIdx)
+      : line.stationIds.slice(eIdx + 1, sIdx).reverse();
+    return ids.map(id => stationMap.get(id)?.name || id);
+  };
+
+  // -------------------------------------------------------------
+  // 1. DIRECT SINGLE LINE ROUTES
+  // -------------------------------------------------------------
   for (const line of filteredLines) {
     const fromIdx = line.stationIds.indexOf(fromStationId);
     const toIdx = line.stationIds.indexOf(toStationId);
 
     if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
       const stepStops = Math.abs(toIdx - fromIdx);
-      const intermediateIds = fromIdx < toIdx
-        ? line.stationIds.slice(fromIdx + 1, toIdx)
-        : line.stationIds.slice(toIdx + 1, fromIdx).reverse();
-      const intermediateNames = intermediateIds
-        .map(id => stationMap.get(id)?.name || id);
+      const intermediateNames = getIntermediateNames(line, fromIdx, toIdx);
 
-      const minsPerStop = line.mode === 'metro' ? 2 : line.mode === 'bus' ? 4 : 2.5;
-      const durationMins = Math.round(stepStops * minsPerStop) + 3;
+      const durationMins = calculateStepDuration(line.mode, stepStops, fromStation, toStation);
 
       const originCrowd = getStationCrowd(fromStationId);
       const destCrowd = getStationCrowd(toStationId);
-      const worstCrowd: CrowdLevel = (originCrowd.level === 'high' || destCrowd.level === 'high')
-        ? 'high'
-        : (originCrowd.level === 'medium' || destCrowd.level === 'medium')
-        ? 'medium'
+      const worstCrowd: CrowdLevel =
+        (originCrowd.level === 'high' || destCrowd.level === 'high') ? 'high'
+        : (originCrowd.level === 'medium' || destCrowd.level === 'medium') ? 'medium'
         : 'low';
 
-      // Fare calculation
       let fare = 10;
       if (line.mode === 'train') {
         fare = stepStops > 15 ? 15 : stepStops > 8 ? 10 : 5;
@@ -349,7 +393,7 @@ export async function findRoutes(
         fare = stepStops > 10 ? 25 : 12;
       }
 
-      const isFastTrainOption = line.mode === 'train' && stepStops > 6;
+      const isFastTrainCandidate = line.mode === 'train' && stepStops >= 6;
 
       const baseStep: RouteStep = {
         stepIndex: 1,
@@ -374,15 +418,15 @@ export async function findRoutes(
 
       const titlePrefix =
         line.mode === 'metro'
-          ? `Direct Metro via ${line.name}`
+          ? `Direct Metro: ${line.name}`
           : line.mode === 'bus'
           ? `BEST Bus Direct: ${line.name}`
-          : `Direct Local via ${line.name}`;
+          : `Direct Suburban Local: ${line.name}`;
 
       results.push({
         id: `direct-${line.id}-${results.length}`,
         title: titlePrefix,
-        subtitle: `No transfers • ${stepStops} stops • Single transit ticket`,
+        subtitle: `Direct • No transfers • ${stepStops} stops`,
         totalDurationMins: durationMins,
         totalTransfers: 0,
         modes: [line.mode],
@@ -392,12 +436,12 @@ export async function findRoutes(
         steps: [baseStep],
         highlights: [
           line.mode === 'metro'
-            ? 'Fully Air-Conditioned Metro • Screen Doors'
+            ? 'Fully Air-Conditioned Metro • Screen doors'
             : line.mode === 'bus'
             ? 'Direct BEST Bus • Seat comfort available'
-            : 'Direct uninterrupted suburban rail run',
-          `${stepStops} stops without platform changes`,
-          worstCrowd === 'high' ? 'High crowd load during peak hours' : 'Optimal seat availability expected'
+            : 'Uninterrupted direct suburban track run',
+          `${stepStops} stops without platform change`,
+          worstCrowd === 'high' ? 'High passenger load during peak hours' : 'Optimal seat availability expected'
         ],
         recommendedCoach:
           line.mode === 'train'
@@ -408,19 +452,31 @@ export async function findRoutes(
         transitConnections
       });
 
-      // Suburban Fast Train alternative
-      if (isFastTrainOption) {
-        const fastDuration = Math.max(12, Math.round(durationMins * 0.65));
+      // Suburban Fast Train Option
+      if (isFastTrainCandidate) {
+        const isWR = line.id === 'western-line';
+        const isCR = line.id === 'central-line';
+        const fastStationSet = isWR ? WR_FAST_STATIONS : isCR ? CR_FAST_STATIONS : null;
+
+        const fastStopsList = intermediateNames.filter(name => {
+          const stn = allStations.find(s => s.name === name);
+          return stn && fastStationSet && fastStationSet.has(stn.id);
+        });
+
+        const fastDuration = Math.max(14, Math.round(durationMins * 0.65));
         const fastStep: RouteStep = {
           ...baseStep,
+          stopsCount: fastStopsList.length + 1,
           durationMins: fastDuration,
-          instructions: `Board FAST local from main platform towards ${toIdx > fromIdx ? line.terminalB : line.terminalA}. Skips intermediate stations.`,
+          intermediateStations: fastStopsList,
+          instructions: `Board FAST local towards ${toIdx > fromIdx ? line.terminalB : line.terminalA}. Skips minor stations, stops only at junction hubs (${fastStopsList.length} fast stops).`,
           trainDetails: buildTrainDetails(line, true, fromStation, toStation)
         };
+
         results.push({
           id: `direct-fast-${line.id}`,
           title: `FAST Local via ${line.name}`,
-          subtitle: `Express skips • Saves ~${durationMins - fastDuration} mins`,
+          subtitle: `Express skips • Saves ~${durationMins - fastDuration} mins • ${fastStopsList.length + 1} express stops`,
           totalDurationMins: fastDuration,
           totalTransfers: 0,
           modes: [line.mode],
@@ -429,31 +485,53 @@ export async function findRoutes(
           estimatedFareRupees: fare,
           steps: [fastStep],
           highlights: [
-            'Fastest transit corridor',
-            'Substantially reduced travel time',
-            'Heavy crush load during peak peak commute'
+            'Fastest transit corridor between stations',
+            'Substantially reduced commute duration',
+            'Express skips intermediate local halts'
           ],
-          recommendedCoach: 'Coaches 5 or 8 for prompt exit',
+          recommendedCoach: 'Coaches 5 or 8 for prompt exit at destination platform',
           transitConnections
         });
       }
     }
   }
 
-  // --- Step 2: One-transfer Interchange Search ---
-  const fromLines = filteredLines.filter(l => l.stationIds.includes(fromStationId));
-  const toLines = filteredLines.filter(l => l.stationIds.includes(toStationId));
+  // -------------------------------------------------------------
+  // 2. ONE-TRANSFER INTERCHANGE ROUTES (Geographically Validated)
+  // -------------------------------------------------------------
+  // Expand origin and destination to include directly connected multimodal hubs
+  const originStationIds = [fromStationId];
+  INTERCHANGE_PAIRS.forEach(p => {
+    if (p.station1 === fromStationId && !originStationIds.includes(p.station2)) originStationIds.push(p.station2);
+    if (p.station2 === fromStationId && !originStationIds.includes(p.station1)) originStationIds.push(p.station1);
+  });
+
+  const destStationIds = [toStationId];
+  INTERCHANGE_PAIRS.forEach(p => {
+    if (p.station1 === toStationId && !destStationIds.includes(p.station2)) destStationIds.push(p.station2);
+    if (p.station2 === toStationId && !destStationIds.includes(p.station1)) destStationIds.push(p.station1);
+  });
+
+  const fromLines = filteredLines.filter(l => l.stationIds.some(sid => originStationIds.includes(sid)));
+  const toLines = filteredLines.filter(l => l.stationIds.some(sid => destStationIds.includes(sid)));
 
   for (const line1 of fromLines) {
     for (const line2 of toLines) {
       if (line1.id === line2.id) continue;
+
+      // Find which origin station connects to line1
+      const actualOriginId = originStationIds.find(sid => line1.stationIds.includes(sid)) || fromStationId;
+      const actualDestId = destStationIds.find(sid => line2.stationIds.includes(sid)) || toStationId;
+
+      const originWalkMins = actualOriginId !== fromStationId ? 3 : 0;
+      const destWalkMins = actualDestId !== toStationId ? 3 : 0;
 
       let interchangeStationId1: string | null = null;
       let interchangeStationId2: string | null = null;
       let transferWalkMins = 3;
       let transferInstructions = 'Walk to connecting platform.';
 
-      // Check identical station in both lines
+      // Check identical station in both lines (e.g. Kurla on CR & Harbour, or Dadar)
       for (const stnId of line1.stationIds) {
         if (line2.stationIds.includes(stnId)) {
           interchangeStationId1 = stnId;
@@ -489,37 +567,50 @@ export async function findRoutes(
       if (
         interchangeStationId1 &&
         interchangeStationId2 &&
-        interchangeStationId1 !== fromStationId &&
-        interchangeStationId2 !== toStationId
+        interchangeStationId1 !== actualOriginId &&
+        interchangeStationId2 !== actualDestId
       ) {
         const jStn1 = stationMap.get(interchangeStationId1);
         const jStn2 = stationMap.get(interchangeStationId2);
         if (!jStn1 || !jStn2) continue;
 
-        const fromIdx1 = line1.stationIds.indexOf(fromStationId);
+        // GEOGRAPHIC DETOUR CHECK: Ensure transfer doesn't travel in reverse direction
+        const distLeg1 = getDistanceKm(fromStation.latitude, fromStation.longitude, jStn1.latitude, jStn1.longitude);
+        const distLeg2 = getDistanceKm(jStn2.latitude, jStn2.longitude, toStation.latitude, toStation.longitude);
+        const totalViaDist = distLeg1 + distLeg2;
+
+        if (totalViaDist > Math.max(directDistanceKm * 1.9, directDistanceKm + 8)) {
+          continue; // Skip illogical detours
+        }
+
+        const fromIdx1 = line1.stationIds.indexOf(actualOriginId);
         const jIdx1 = line1.stationIds.indexOf(interchangeStationId1);
         const stops1 = Math.abs(jIdx1 - fromIdx1);
         if (stops1 === 0) continue;
 
         const jIdx2 = line2.stationIds.indexOf(interchangeStationId2);
-        const toIdx2 = line2.stationIds.indexOf(toStationId);
+        const toIdx2 = line2.stationIds.indexOf(actualDestId);
         const stops2 = Math.abs(toIdx2 - jIdx2);
         if (stops2 === 0) continue;
 
-        const dur1 = Math.round(stops1 * (line1.mode === 'metro' ? 2 : line1.mode === 'bus' ? 4 : 2.5));
-        const dur2 = Math.round(stops2 * (line2.mode === 'metro' ? 2 : line2.mode === 'bus' ? 4 : 2.5));
-        const totalDuration = dur1 + transferWalkMins + dur2;
+        const intermediate1 = getIntermediateNames(line1, fromIdx1, jIdx1);
+        const intermediate2 = getIntermediateNames(line2, jIdx2, toIdx2);
 
-        const c1 = getStationCrowd(fromStationId);
+        const originStnObj = stationMap.get(actualOriginId) || fromStation;
+        const destStnObj = stationMap.get(actualDestId) || toStation;
+
+        const dur1 = calculateStepDuration(line1.mode, stops1, originStnObj, jStn1);
+        const dur2 = calculateStepDuration(line2.mode, stops2, jStn2, destStnObj);
+        const totalDuration = dur1 + transferWalkMins + dur2 + originWalkMins + destWalkMins;
+
+        const c1 = getStationCrowd(actualOriginId);
         const cJ = getStationCrowd(interchangeStationId1);
-        const c2 = getStationCrowd(toStationId);
+        const c2 = getStationCrowd(actualDestId);
 
         const worstCrowd: CrowdLevel =
-          c1.level === 'high' || cJ.level === 'high' || c2.level === 'high'
-            ? 'high'
-            : c1.level === 'medium' || cJ.level === 'medium' || c2.level === 'medium'
-            ? 'medium'
-            : 'low';
+          c1.level === 'high' || cJ.level === 'high' || c2.level === 'high' ? 'high'
+          : c1.level === 'medium' || cJ.level === 'medium' || c2.level === 'medium' ? 'medium'
+          : 'low';
 
         const step1: RouteStep = {
           stepIndex: 1,
@@ -527,19 +618,21 @@ export async function findRoutes(
           lineId: line1.id,
           lineName: line1.name,
           lineColor: line1.color,
-          fromStationId,
-          fromStationName: fromStation.name,
+          fromStationId: originStnObj.id,
+          fromStationName: originStnObj.name,
           toStationId: jStn1.id,
           toStationName: jStn1.name,
           stopsCount: stops1,
-          durationMins: dur1,
+          durationMins: dur1 + originWalkMins,
           crowdLevel: c1.level,
           crowdSource: c1.source,
-          intermediateStations: [],
-          instructions: `Take ${line1.name} from ${fromStation.name} to ${jStn1.name} (${stops1} stops).`,
-          metroDetails: line1.mode === 'metro' ? buildMetroDetails(line1, fromStation, jStn1) : undefined,
-          busDetails: line1.mode === 'bus' ? buildBusDetails(line1, fromStation, jStn1) : undefined,
-          trainDetails: line1.mode === 'train' ? buildTrainDetails(line1, false, fromStation, jStn1) : undefined
+          intermediateStations: intermediate1,
+          instructions: originWalkMins > 0
+            ? `Walk ~${originWalkMins}m via skywalk to ${originStnObj.name}. Take ${line1.name} to ${jStn1.name} (${stops1} stops).`
+            : `Take ${line1.name} from ${originStnObj.name} to ${jStn1.name} (${stops1} stops).`,
+          metroDetails: line1.mode === 'metro' ? buildMetroDetails(line1, originStnObj, jStn1) : undefined,
+          busDetails: line1.mode === 'bus' ? buildBusDetails(line1, originStnObj, jStn1) : undefined,
+          trainDetails: line1.mode === 'train' ? buildTrainDetails(line1, false, originStnObj, jStn1) : undefined
         };
 
         const step2: RouteStep = {
@@ -550,35 +643,31 @@ export async function findRoutes(
           lineColor: line2.color,
           fromStationId: jStn2.id,
           fromStationName: jStn2.name,
-          toStationId,
-          toStationName: toStation.name,
+          toStationId: destStnObj.id,
+          toStationName: destStnObj.name,
           stopsCount: stops2,
-          durationMins: dur2,
+          durationMins: dur2 + destWalkMins,
           crowdLevel: c2.level,
           crowdSource: c2.source,
           transferWalkTimeMins: transferWalkMins,
-          intermediateStations: [],
-          instructions: `Transfer at ${jStn1.name} (~${transferWalkMins} min walk). ${transferInstructions} Board ${line2.name} to ${toStation.name} (${stops2} stops).`,
-          metroDetails: line2.mode === 'metro' ? buildMetroDetails(line2, jStn2, toStation) : undefined,
-          busDetails: line2.mode === 'bus' ? buildBusDetails(line2, jStn2, toStation) : undefined,
-          trainDetails: line2.mode === 'train' ? buildTrainDetails(line2, false, jStn2, toStation) : undefined
+          intermediateStations: intermediate2,
+          instructions: `Transfer at ${jStn1.name} (~${transferWalkMins} min walk). ${transferInstructions} Board ${line2.name} to ${destStnObj.name} (${stops2} stops).${destWalkMins > 0 ? ` Alight and walk ${destWalkMins}m to ${toStation.name}.` : ''}`,
+          metroDetails: line2.mode === 'metro' ? buildMetroDetails(line2, jStn2, destStnObj) : undefined,
+          busDetails: line2.mode === 'bus' ? buildBusDetails(line2, jStn2, destStnObj) : undefined,
+          trainDetails: line2.mode === 'train' ? buildTrainDetails(line2, false, jStn2, destStnObj) : undefined
         };
 
         const modesSet = Array.from(new Set([line1.mode, line2.mode]));
-
-        let fare1 = line1.mode === 'metro' ? 20 : line1.mode === 'bus' ? 12 : 10;
-        let fare2 = line2.mode === 'metro' ? 20 : line2.mode === 'bus' ? 12 : 10;
-
-        const isMetroInvolved = modesSet.includes('metro');
-        const isBusInvolved = modesSet.includes('bus');
+        const fare1 = line1.mode === 'metro' ? 20 : line1.mode === 'bus' ? 12 : 10;
+        const fare2 = line2.mode === 'metro' ? 20 : line2.mode === 'bus' ? 12 : 10;
 
         let title = `Via ${jStn1.name} Interchange (${line1.code || line1.name} → ${line2.code || line2.name})`;
         if (line1.mode === 'metro' && line2.mode === 'metro') {
           title = `Metro Link via ${jStn1.name} (${line1.code} → ${line2.code})`;
-        } else if (isBusInvolved && !isMetroInvolved) {
-          title = `Suburban Rail + BEST Bus Feeder via ${jStn1.name}`;
-        } else if (isMetroInvolved && !isBusInvolved) {
-          title = `Suburban Local + Metro Skywalk via ${jStn1.name}`;
+        } else if (modesSet.includes('bus') && !modesSet.includes('metro')) {
+          title = `Rail + BEST Bus Feeder via ${jStn1.name}`;
+        } else if (modesSet.includes('metro') && !modesSet.includes('bus')) {
+          title = `Local Rail + AC Metro via ${jStn1.name}`;
         }
 
         results.push({
@@ -594,9 +683,9 @@ export async function findRoutes(
           steps: [step1, step2],
           highlights: [
             `Interchange: ${jStn1.name} (~${transferWalkMins} min walkway)`,
-            isMetroInvolved
+            modesSet.includes('metro')
               ? 'Includes air-conditioned metro comfort'
-              : isBusInvolved
+              : modesSet.includes('bus')
               ? 'Includes direct BEST feeder connection'
               : 'Direct suburban railway interchange',
             'Synchronized timetable connection'
@@ -608,142 +697,173 @@ export async function findRoutes(
     }
   }
 
-  // --- Step 3: Feeder Bus & Metro Multi-modal routes if needed ---
-  // Ensure we have at least 1 BEST bus option and 1 Metro option if available
-  const hasBusRoute = results.some(r => r.modes.includes('bus'));
-  const hasMetroRoute = results.some(r => r.modes.includes('metro'));
+  // -------------------------------------------------------------
+  // 3. TWO-TRANSFER MULTI-HOP ROUTES (e.g. Metro 2A -> Metro 1 -> Central Line)
+  // Only search if NO direct or single-transfer route exists
+  // -------------------------------------------------------------
+  if (results.length === 0) {
+    for (const line1 of fromLines) {
+      for (const line3 of toLines) {
+        if (line1.id === line3.id) continue;
 
-  if (!hasBusRoute && allowedModes.includes('bus')) {
-    // Generate an authentic BEST feeder combination
-    const feederBus = allLines.find(l => l.mode === 'bus') || allLines[allLines.length - 1];
-    const hubStation = stationMap.get('stn-andheri') || stationMap.get('stn-dadar-wr') || fromStation;
+        // Find intermediate connecting lines (line2)
+        for (const line2 of filteredLines) {
+          if (line2.id === line1.id || line2.id === line3.id) continue;
 
-    const busStep: RouteStep = {
-      stepIndex: 2,
-      mode: 'bus',
-      lineId: feederBus.id,
-      lineName: feederBus.name,
-      lineColor: feederBus.color,
-      fromStationId: hubStation.id,
-      fromStationName: hubStation.name,
-      toStationId: toStation.id,
-      toStationName: toStation.name,
-      stopsCount: 5,
-      durationMins: 20,
-      crowdLevel: 'medium',
-      crowdSource: 'verified_survey',
-      transferWalkTimeMins: 4,
-      intermediateStations: [],
-      instructions: `Transfer at ${hubStation.name} Bus Depot. Board ${feederBus.name} towards ${toStation.name}.`,
-      busDetails: buildBusDetails(feederBus, hubStation, toStation)
-    };
+          // Check if line1 connects to line2, and line2 connects to line3
+          const hub1Matches = INTERCHANGE_PAIRS.filter(p =>
+            (line1.stationIds.includes(p.station1) && line2.stationIds.includes(p.station2)) ||
+            (line1.stationIds.includes(p.station2) && line2.stationIds.includes(p.station1))
+          );
+          const hub2Matches = INTERCHANGE_PAIRS.filter(p =>
+            (line2.stationIds.includes(p.station1) && line3.stationIds.includes(p.station2)) ||
+            (line2.stationIds.includes(p.station2) && line3.stationIds.includes(p.station1))
+          );
 
-    const trainStep: RouteStep = {
-      stepIndex: 1,
-      mode: fromStation.mode,
-      lineName: 'Suburban Local Connector',
-      lineColor: '#0d9488',
-      fromStationId: fromStation.id,
-      fromStationName: fromStation.name,
-      toStationId: hubStation.id,
-      toStationName: hubStation.name,
-      stopsCount: 6,
-      durationMins: 18,
-      crowdLevel: 'high',
-      crowdSource: 'historical_pattern',
-      intermediateStations: [],
-      instructions: `Board Suburban train from ${fromStation.name} to ${hubStation.name}. Exit towards East Bus Depot.`,
-      trainDetails: buildTrainDetails(allLines[0], false, fromStation, hubStation)
-    };
+          if (hub1Matches.length > 0 && hub2Matches.length > 0) {
+            const h1 = hub1Matches[0];
+            const h2 = hub2Matches[0];
 
-    results.push({
-      id: `feeder-bus-${Date.now()}`,
-      title: `Suburban Local + BEST Bus Feeder via ${hubStation.name}`,
-      subtitle: `Integrated transit • 1 easy bus transfer • Dedicated seats`,
-      totalDurationMins: 42,
-      totalTransfers: 1,
-      modes: [fromStation.mode, 'bus'],
-      overallCrowd: 'medium',
-      crowdScore: 58,
-      estimatedFareRupees: 22,
-      steps: [trainStep, busStep],
-      highlights: [
-        `Direct BEST Bus feeder connection at ${hubStation.name}`,
-        'Ideal when train stations are crowded',
-        'Digital Chalo QR ticketing available'
-      ],
-      recommendedCoach: 'Rear coach closest to East Bus Depot exit',
-      transitConnections
-    });
+            const j1Id = line1.stationIds.includes(h1.station1) ? h1.station1 : h1.station2;
+            const j2Id = line2.stationIds.includes(h1.station2) ? h1.station2 : h1.station1;
+
+            const j3Id = line2.stationIds.includes(h2.station1) ? h2.station1 : h2.station2;
+            const j4Id = line3.stationIds.includes(h2.station2) ? h2.station2 : h2.station1;
+
+            if (j1Id !== fromStationId && j4Id !== toStationId && j2Id !== j3Id) {
+              const jStn1 = stationMap.get(j1Id);
+              const jStn2 = stationMap.get(j2Id);
+              const jStn3 = stationMap.get(j3Id);
+              const jStn4 = stationMap.get(j4Id);
+
+              if (jStn1 && jStn2 && jStn3 && jStn4) {
+                const fIdx1 = line1.stationIds.indexOf(fromStationId);
+                const jIdx1 = line1.stationIds.indexOf(j1Id);
+                const stops1 = Math.abs(jIdx1 - fIdx1);
+
+                const jIdx2 = line2.stationIds.indexOf(j2Id);
+                const jIdx3 = line2.stationIds.indexOf(j3Id);
+                const stops2 = Math.abs(jIdx3 - jIdx2);
+
+                const jIdx4 = line3.stationIds.indexOf(j4Id);
+                const tIdx3 = line3.stationIds.indexOf(toStationId);
+                const stops3 = Math.abs(tIdx3 - jIdx4);
+
+                if (stops1 > 0 && stops2 > 0 && stops3 > 0) {
+                  const intermediate1 = getIntermediateNames(line1, fIdx1, jIdx1);
+                  const intermediate2 = getIntermediateNames(line2, jIdx2, jIdx3);
+                  const intermediate3 = getIntermediateNames(line3, jIdx4, tIdx3);
+
+                  const dur1 = Math.round(stops1 * (line1.mode === 'metro' ? 2 : 2.5));
+                  const dur2 = Math.round(stops2 * (line2.mode === 'metro' ? 2 : 2.5));
+                  const dur3 = Math.round(stops3 * (line3.mode === 'metro' ? 2 : 2.5));
+                  const totalDur = dur1 + h1.walkMins + dur2 + h2.walkMins + dur3;
+
+                  const step1: RouteStep = {
+                    stepIndex: 1,
+                    mode: line1.mode,
+                    lineId: line1.id,
+                    lineName: line1.name,
+                    lineColor: line1.color,
+                    fromStationId,
+                    fromStationName: fromStation.name,
+                    toStationId: jStn1.id,
+                    toStationName: jStn1.name,
+                    stopsCount: stops1,
+                    durationMins: dur1,
+                    crowdLevel: 'medium',
+                    crowdSource: 'live_sensor',
+                    intermediateStations: intermediate1,
+                    instructions: `Take ${line1.name} to ${jStn1.name}.`
+                  };
+
+                  const step2: RouteStep = {
+                    stepIndex: 2,
+                    mode: line2.mode,
+                    lineId: line2.id,
+                    lineName: line2.name,
+                    lineColor: line2.color,
+                    fromStationId: jStn2.id,
+                    fromStationName: jStn2.name,
+                    toStationId: jStn3.id,
+                    toStationName: jStn3.name,
+                    stopsCount: stops2,
+                    durationMins: dur2,
+                    crowdLevel: 'low',
+                    crowdSource: 'verified_survey',
+                    transferWalkTimeMins: h1.walkMins,
+                    intermediateStations: intermediate2,
+                    instructions: `Transfer at ${jStn1.name} (~${h1.walkMins}m). Board ${line2.name} to ${jStn3.name}.`
+                  };
+
+                  const step3: RouteStep = {
+                    stepIndex: 3,
+                    mode: line3.mode,
+                    lineId: line3.id,
+                    lineName: line3.name,
+                    lineColor: line3.color,
+                    fromStationId: jStn4.id,
+                    fromStationName: jStn4.name,
+                    toStationId,
+                    toStationName: toStation.name,
+                    stopsCount: stops3,
+                    durationMins: dur3,
+                    crowdLevel: 'medium',
+                    crowdSource: 'historical_pattern',
+                    transferWalkTimeMins: h2.walkMins,
+                    intermediateStations: intermediate3,
+                    instructions: `Transfer at ${jStn3.name} (~${h2.walkMins}m). Board ${line3.name} to ${toStation.name}.`
+                  };
+
+                  const modesSet = Array.from(new Set([line1.mode, line2.mode, line3.mode]));
+
+                  results.push({
+                    id: `multi-${results.length}`,
+                    title: `Cross-Corridor Link via ${jStn1.name} & ${jStn3.name}`,
+                    subtitle: `2 transfers (${jStn1.name}, ${jStn3.name}) • ${stops1 + stops2 + stops3} total stops`,
+                    totalDurationMins: totalDur,
+                    totalTransfers: 2,
+                    modes: modesSet,
+                    overallCrowd: 'medium',
+                    crowdScore: 54,
+                    estimatedFareRupees: 45,
+                    steps: [step1, step2, step3],
+                    highlights: [
+                      `Interchange hubs at ${jStn1.name} and ${jStn3.name}`,
+                      'Covers East-West transit bridges seamlessly',
+                      'Air-conditioned connectivity included'
+                    ],
+                    recommendedCoach: 'Platform transfer skywalks located at center of train',
+                    transitConnections
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
-  if (!hasMetroRoute && allowedModes.includes('metro')) {
-    // Generate an authentic Metro connector option
-    const metroLine = allLines.find(l => l.mode === 'metro') || allLines[3];
-    const hubStation = stationMap.get('stn-andheri') || stationMap.get('stn-ghatkopar') || fromStation;
-    const destMetroStn = allStations.find(s => s.mode === 'metro' && s.id !== hubStation.id) || toStation;
+  // Deduplicate routes with identical sequence of modes and transfer points
+  const seenSignatures = new Set<string>();
+  const deduplicated: RouteOption[] = [];
 
-    const trainStep: RouteStep = {
-      stepIndex: 1,
-      mode: fromStation.mode,
-      lineName: 'Suburban Local Corridor',
-      lineColor: '#0d9488',
-      fromStationId: fromStation.id,
-      fromStationName: fromStation.name,
-      toStationId: hubStation.id,
-      toStationName: hubStation.name,
-      stopsCount: 7,
-      durationMins: 20,
-      crowdLevel: 'high',
-      crowdSource: 'live_sensor',
-      intermediateStations: [],
-      instructions: `Ride local train from ${fromStation.name} to ${hubStation.name}. Take direct skywalk to Metro station.`,
-      trainDetails: buildTrainDetails(allLines[0], false, fromStation, hubStation)
-    };
-
-    const metroStep: RouteStep = {
-      stepIndex: 2,
-      mode: 'metro',
-      lineId: metroLine.id,
-      lineName: metroLine.name,
-      lineColor: metroLine.color,
-      fromStationId: hubStation.id,
-      fromStationName: `${hubStation.name} (Metro)`,
-      toStationId: destMetroStn.id,
-      toStationName: toStation.name,
-      stopsCount: 4,
-      durationMins: 12,
-      crowdLevel: 'low',
-      crowdSource: 'verified_survey',
-      transferWalkTimeMins: 3,
-      intermediateStations: [],
-      instructions: `Transfer via skywalk at ${hubStation.name}. Board ${metroLine.name} in AC comfort.`,
-      metroDetails: buildMetroDetails(metroLine, hubStation, toStation)
-    };
-
-    results.push({
-      id: `metro-combo-${Date.now()}`,
-      title: `Suburban Local + AC Metro Link via ${hubStation.name}`,
-      subtitle: `Fast rail + AC Metro skywalk connection • 1 transfer`,
-      totalDurationMins: 35,
-      totalTransfers: 1,
-      modes: [fromStation.mode, 'metro'],
-      overallCrowd: 'low',
-      crowdScore: 38,
-      estimatedFareRupees: 25,
-      steps: [trainStep, metroStep],
-      highlights: [
-        'Direct covered skywalk interchange',
-        'Air-conditioned metro leg with low crowd load',
-        'High frequency service (every 3 mins)'
-      ],
-      recommendedCoach: 'Platform skywalk at middle of station',
-      transitConnections
-    });
+  for (const r of results) {
+    const signature = `${r.title}|` + r.steps.map(s => `${s.lineId || s.lineName}:${s.fromStationId}->${s.toStationId}`).join('|');
+    if (!seenSignatures.has(signature)) {
+      seenSignatures.add(signature);
+      deduplicated.push(r);
+    }
   }
 
-  // Deduplicate and rank: Fastest first
-  results.sort((a, b) => a.totalDurationMins - b.totalDurationMins);
+  // Sort: Direct routes first, then by total duration
+  deduplicated.sort((a, b) => {
+    if (a.totalTransfers !== b.totalTransfers) {
+      return a.totalTransfers - b.totalTransfers;
+    }
+    return a.totalDurationMins - b.totalDurationMins;
+  });
 
-  return results.slice(0, 6);
+  return deduplicated.slice(0, 6);
 }
